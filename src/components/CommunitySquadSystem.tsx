@@ -1048,7 +1048,7 @@ export default function CommunitySquadSystem({ currentIgn, onAlert, onGoHome }: 
                         <p className="text-xs text-zinc-500">Found your own community esports team or search again across regional grids.</p>
                       </div>
                       <button
-                        onClick={() => setActiveTab("create")}
+                        onClick={() => setActiveView("create")}
                         className="px-5 py-2.5 bg-red-650 hover:bg-red-600 active:scale-95 text-white font-mono uppercase font-black text-xs rounded-xl shadow-lg transition-all cursor-pointer"
                       >
                         Create Team

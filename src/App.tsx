@@ -1149,6 +1149,7 @@ export default function App() {
     setSystemAlertMessage(`⚡ Simulated lobby check-in for ${ign}! Status updated to Available (Timer reset).`);
   };
   const [isTacticalModalOpen, setIsTacticalModalOpen] = useState<boolean>(false);
+  const [tacticalPlayerIgn, setTacticalPlayerIgn] = useState<string>("");
   const [systemAlertMessage, setSystemAlertMessage] = useState<string>("");
   
   // Custom Toast Notifications for specific events (e.g., dossier download)
@@ -11261,7 +11262,9 @@ export default function App() {
                       )}
 
                     </motion.div>
-                  ); })}
+                  );
+                })
+              )}
                 </div>
               </div>
             </div>

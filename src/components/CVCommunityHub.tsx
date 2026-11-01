@@ -67,53 +67,16 @@ export default function CVCommunityHub({ userSession, systemAlertMessage, setSys
     initialTab === "hosting" ? "hosting-requests" : initialTab === "dashboard" ? "host-dashboard" : initialTab === "teams" ? "teams-manager" : "team-discovery"
   );
 
-  // States for Tourney Request System
-  const [tourRequests, setTourRequests] = useState<TourneyRequest[]>([
-    {
-      id: "tr-1",
-      name: "Crimson Strike Invitational",
-      type: "Squad",
-      region: "Africa",
-      description: "A community squad exhibition with custom streaming on Twitch and cash bounty giveaways.",
-      rules: "No emulator allowed. Mandatory wireframe proof on discord screenshare.",
-      prizePool: "$250 USD + 5000 Coins",
-      sponsorName: "RedLine Fuel Drinks",
-      contactInfo: "redline@esports.com",
-      preferredDates: "2026-07-15",
-      expectedTeams: 32,
-      streamingPlans: "Twitch Primary Cast @cv_invitational",
-      status: "Approved",
-      permissionLevel: "Verified Host",
-      applicantName: userSession.ign || "ApexPlayer",
-      logs: ["Submitted request", "Assigned permissions: Verified Host", "Status changed to Approved"]
-    },
-    {
-      id: "tr-2",
-      name: "TDM Gladiator 1v1 Clash",
-      type: "TDM",
-      region: "Middle East",
-      description: "Direct shootout ladder of 64 duelists over a 3-day bracket weekend.",
-      rules: "First to 40 kills or 10 min cap. Warehouse only.",
-      prizePool: "15000 CV Coins + Dynamic Badges",
-      sponsorName: "Community Crowdfunded",
-      contactInfo: "clashmaster@gmail.com",
-      preferredDates: "2026-06-30",
-      expectedTeams: 64,
-      streamingPlans: "Discord High-Definition Stream server links",
-      status: "Pending Review",
-      permissionLevel: "Community Host",
-      applicantName: "Rival_Gamer",
-      logs: ["Submitted request", "Awaiting admin confirmation"]
-    }
-  ]);
+  // States for Tourney Request System (Clean initial starting state)
+  const [tourRequests, setTourRequests] = useState<TourneyRequest[]>([]);
 
   // Host rating stats
   const hostStats = {
-    eventsHosted: 12,
-    successfulEvents: 11,
-    playerReviews: 4.8,
-    reliabilityScore: "96%",
-    communityRatings: "Excellent (45 votes)"
+    eventsHosted: 0,
+    successfulEvents: 0,
+    playerReviews: 5.0,
+    reliabilityScore: "100%",
+    communityRatings: "New Host"
   };
 
   // Tournament Submission Modal/Form state
@@ -132,69 +95,8 @@ export default function CVCommunityHub({ userSession, systemAlertMessage, setSys
   const [activeHostTab, setActiveHostTab] = useState<"creation" | "registration" | "scheduling" | "announcements" | "results">("creation");
   const [schedulingMatch, setSchedulingMatch] = useState({ round: "Quarterfinals", bName: "Vipers A", rName: "Hydra B", date: "June 25", time: "18:00 UTC", server: "ZA_Host_A1" });
 
-  // Community Teams Storage
-  const [communityTeams, setCommunityTeams] = useState<CommunityTeam[]>([
-    {
-      id: "ct-1",
-      name: "Bermuda Snipers Corp",
-      tag: "BSC",
-      logo: "🎯",
-      banner: "from-blue-900 to-indigo-950",
-      region: "Africa",
-      description: "A friendly community lineup of sharpshooters playing seasonal scrambles and TDM.",
-      recruitmentStatus: "Open",
-      ownerName: userSession.ign || "ApexPlayer",
-      members: [
-        { name: userSession.ign || "ApexPlayer", role: "Owner", rating: "Ranked Legend" },
-        { name: "Delta_Viper", role: "Captain", rating: "Platinum" },
-        { name: "Slayer_01", role: "Player", rating: "Elite" }
-      ],
-      announcements: [
-        { id: "an-1", msg: "Duo practice begins tonight at 20:00!", date: "Today" }
-      ],
-      achievements: ["S2 Weekly Champion", "TDM Arena Diamond Tier"],
-      stats: { matches: 45, wins: 30, ratio: "66%" },
-      isVerified: true,
-      gallery: ["https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&w=150&q=50"],
-      chat: [
-        { sender: "Delta_Viper", text: "Ready for scrims?", time: "12:30" },
-        { sender: "Slayer_01", text: "Locked and loaded! Ready when you are.", time: "12:32" }
-      ],
-      recruitmentPost: {
-        requiredRank: "Platinum V",
-        rolesNeeded: ["Sniper", "Entry Fragger"],
-        experienceLevel: "Tier 2 Scrim experience",
-        availability: "Wed/Fri Nights"
-      }
-    },
-    {
-      id: "ct-2",
-      name: "Ares Vanguard",
-      tag: "ARES",
-      logo: "⚔️",
-      banner: "from-red-950 to-neutral-950",
-      region: "Europe",
-      description: "Uncontrolled aggression and tactical layout control. Looking for solid TDM mechanics.",
-      recruitmentStatus: "Open",
-      ownerName: "Ares_Leader",
-      members: [
-        { name: "Ares_Leader", role: "Owner", rating: "Legend" },
-        { name: "Shadow_Mage", role: "Captain", rating: "Elite" }
-      ],
-      announcements: [],
-      achievements: [],
-      stats: { matches: 12, wins: 8, ratio: "66%" },
-      isVerified: false,
-      gallery: [],
-      chat: [],
-      recruitmentPost: {
-        requiredRank: "Diamond I",
-        rolesNeeded: ["Support / Utility Coordinator"],
-        experienceLevel: "Tournament player",
-        availability: "Daily"
-      }
-    }
-  ]);
+  // Community Teams Storage (Clean initial starting state)
+  const [communityTeams, setCommunityTeams] = useState<CommunityTeam[]>([]);
 
   // States for Community Team Creation Process
   const [cTeamName, setCTeamName] = useState("");
@@ -206,7 +108,7 @@ export default function CVCommunityHub({ userSession, systemAlertMessage, setSys
   const [cTeamRecruitment, setCTeamRecruitment] = useState<"Open" | "Closed">("Open");
 
   // Team controls states
-  const [selectedMyTeamId, setSelectedMyTeamId] = useState<string>("ct-1");
+  const [selectedMyTeamId, setSelectedMyTeamId] = useState<string>("");
   const [invitePlayerName, setInvitePlayerName] = useState("");
   const [promoteMemberName, setPromoteMemberName] = useState("");
   const [selectedMemberRole, setSelectedMemberRole] = useState<"Captain" | "Manager" | "Player">("Player");
@@ -1396,8 +1298,20 @@ export default function CVCommunityHub({ userSession, systemAlertMessage, setSys
                 ))}
 
                 {displayedTeams.length === 0 && (
-                  <div className="col-span-full text-center py-10 bg-black/40 border border-zinc-900 rounded-3xl font-mono text-xs text-zinc-500">
-                    No community lines matched search matrices. Create yours above!
+                  <div className="col-span-full text-center py-12 px-6 bg-black/40 border border-zinc-900 rounded-3xl space-y-4">
+                    <div className="w-12 h-12 mx-auto rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-xl text-red-500 font-mono">
+                      🛡️
+                    </div>
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-bold text-white font-orbitron uppercase tracking-wider">No teams available yet. Create a team and start building your roster.</h4>
+                      <p className="text-xs text-zinc-500">Create your community team to begin recruiting players and organizing scrims.</p>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab("teams-manager")}
+                      className="px-5 py-2.5 bg-red-650 hover:bg-red-600 active:scale-95 text-white font-mono uppercase font-black text-xs rounded-xl shadow-lg transition-all cursor-pointer inline-block"
+                    >
+                      Create Team
+                    </button>
                   </div>
                 )}
               </div>

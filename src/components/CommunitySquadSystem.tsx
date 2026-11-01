@@ -130,66 +130,8 @@ export interface SquadPermissionConfig {
   accessVault: string[];
 }
 
-// --- INITIAL DUMMY RECORDS ---
-const INITIAL_COMMUNITY_SQUADS: CommunitySquad[] = [
-  {
-    id: "cs-1",
-    name: "Apex Overlords",
-    logo: "👑",
-    banner: "from-purple-900 to-indigo-950",
-    region: "Africa",
-    game: "PUBG Mobile",
-    description: "Formed in Harare, we are looking for dedicated daily PUBG Mobile rushers to dominate the community brackets.",
-    squadType: "Public",
-    requirements: "Over 2.5 K/D ratio, active microphones, Level 50+ accounts.",
-    ownerIgn: "Ares_Leader",
-    createdAt: new Date().toISOString(),
-    members: [
-      { ign: "Ares_Leader", role: "Squad Owner", joinedAt: new Date().toISOString() },
-      { ign: "Snip3rElite", role: "Captain", joinedAt: new Date().toISOString() },
-      { ign: "Mamba_Flick", role: "Member", joinedAt: new Date().toISOString() },
-      { ign: "Slayer_IGL", role: "Member", joinedAt: new Date().toISOString() },
-    ],
-    joinRequests: []
-  },
-  {
-    id: "cs-2",
-    name: "Zimbabwean Elite Gladiators",
-    logo: "⚡",
-    banner: "from-amber-650/40 via-zinc-950 to-black",
-    region: "Africa",
-    game: "CODM",
-    description: "The official autonomous casual Valorant/CODM clan sector established for fast customs and community scrims.",
-    squadType: "Public",
-    requirements: "Casual game sense, daily discord presence, respectful behavior.",
-    ownerIgn: "Vesper_CV",
-    createdAt: new Date().toISOString(),
-    members: [
-      { ign: "Vesper_CV", role: "Squad Owner", joinedAt: new Date().toISOString() },
-      { ign: "Chrono_Queen", role: "Co-Owner", joinedAt: new Date().toISOString() },
-      { ign: "Shinobi_7", role: "Captain", joinedAt: new Date().toISOString() }
-    ],
-    joinRequests: []
-  },
-  {
-    id: "cs-3",
-    name: "Crimson Eclipse",
-    logo: "🥀",
-    banner: "from-red-950 to-stone-950",
-    region: "Europe",
-    game: "PUBG Mobile",
-    description: "High-tier pub stompers who participate in regional weekend showdowns. Join to schedule scrim matches.",
-    squadType: "Public",
-    requirements: "Minimum tier ACE in current season. Squad voice active.",
-    ownerIgn: "Viper_Rush",
-    createdAt: new Date().toISOString(),
-    members: [
-      { ign: "Viper_Rush", role: "Squad Owner", joinedAt: new Date().toISOString() },
-      { ign: "ToxicSniper", role: "Member", joinedAt: new Date().toISOString() }
-    ],
-    joinRequests: []
-  }
-];
+// --- INITIAL SQUADS (CLEAN STARTING STATE) ---
+const INITIAL_COMMUNITY_SQUADS: CommunitySquad[] = [];
 
 const INITIAL_ANNOUNCEMENTS: SquadAnnouncement[] = [];
 
@@ -1097,8 +1039,20 @@ export default function CommunitySquadSystem({ currentIgn, onAlert, onGoHome }: 
 
                 if (filtered.length === 0) {
                   return (
-                    <div className="bg-zinc-950 p-10 rounded border border-dashed border-zinc-900 text-center text-zinc-500 italic font-mono text-xs">
-                      No public squads match search keys. Click Create Squad to initiate your own sector!
+                    <div className="bg-black/40 p-12 rounded-2xl border border-zinc-900 text-center space-y-4">
+                      <div className="w-12 h-12 mx-auto rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center text-xl text-red-500 font-mono">
+                        🛡️
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-bold text-white font-orbitron uppercase tracking-wider">No teams available yet. Create a team and start building your roster.</h4>
+                        <p className="text-xs text-zinc-500">Found your own community esports team or search again across regional grids.</p>
+                      </div>
+                      <button
+                        onClick={() => setActiveTab("create")}
+                        className="px-5 py-2.5 bg-red-650 hover:bg-red-600 active:scale-95 text-white font-mono uppercase font-black text-xs rounded-xl shadow-lg transition-all cursor-pointer"
+                      >
+                        Create Team
+                      </button>
                     </div>
                   );
                 }

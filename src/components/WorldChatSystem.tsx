@@ -81,12 +81,40 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
   const [adminReasonInput, setAdminReasonInput] = useState("");
   const [adminMuteDuration, setAdminMuteDuration] = useState(15);
   const [isAdminPanelOpen, setIsAdminPanelOpen] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [mobileHeightStyle, setMobileHeightStyle] = useState<string | undefined>(undefined);
 
   // Profile Card Overlay State
   const [selectedProfileCard, setSelectedProfileCard] = useState<any | null>(null);
 
   const listEndRef = useRef<HTMLDivElement>(null);
   const chatMessagesContainerRef = useRef<HTMLDivElement>(null);
+
+  // Handle mobile visualViewport resize when virtual keyboard toggles
+  useEffect(() => {
+    const handleViewportChange = () => {
+      if (window.visualViewport) {
+        const vpHeight = window.visualViewport.height;
+        if (vpHeight < window.innerHeight * 0.75) {
+          // Virtual keyboard is active on mobile
+          setMobileHeightStyle(`${Math.max(380, Math.round(vpHeight - 40))}px`);
+        } else {
+          setMobileHeightStyle(undefined);
+        }
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", handleViewportChange);
+      window.visualViewport.addEventListener("scroll", handleViewportChange);
+    }
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", handleViewportChange);
+        window.visualViewport.removeEventListener("scroll", handleViewportChange);
+      }
+    };
+  }, []);
 
   // Is staff verification
   const isStaff = ["Owner", "Head Admin", "Admin", "Moderator"].includes(session.role);
@@ -250,7 +278,6 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
 
           case "chat_error": {
             setSystemAlertMessage("🚫 Action Denied: " + payload.error);
-            alert("CHAT SECURITY NOTICE:\n" + payload.error);
             break;
           }
         }
@@ -279,13 +306,14 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
   // 4. Input trigger message dispatcher
   const handleSendMessage = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!inputText.trim()) return;
+    if (!inputText.trim() || isSending) return;
 
     if (!socket || socket.readyState !== WebSocket.OPEN) {
       setSystemAlertMessage("🔌 Error: World Chat Server Link Offline. Retrying reconnection...");
       return;
     }
 
+    setIsSending(true);
     const payload = {
       type: "send_chat",
       channelId: activeChannelId,
@@ -296,6 +324,9 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
     socket.send(JSON.stringify(payload));
     setInputText("");
     setReplyToMsg(null);
+    setTimeout(() => {
+      setIsSending(false);
+    }, 250);
   };
 
   // Click emoji reactor
@@ -317,13 +348,13 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
     if (!pollQuestion.trim() || !socket) return;
 
     if (!session.verified && !isStaff) {
-      alert("POLL ACTION ERROR: Only Verified community members and Staff can create interaction polls.");
+      setSystemAlertMessage("⚠️ Poll Action: Only Verified community members and Staff can create interaction polls.");
       return;
     }
 
     const validOptions = pollChoices.filter(opt => opt.trim() !== "").map(opt => ({ text: opt, votes: [] }));
     if (validOptions.length < 2) {
-      alert("VOTE SELECTION ERROR: You must provide at least 2 valid poll option routes.");
+      setSystemAlertMessage("⚠️ Vote Selection: You must provide at least 2 valid poll option routes.");
       return;
     }
 
@@ -349,7 +380,7 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
     if (!socket) return;
     
     if (session.role === "Guest") {
-      alert("UPLOAD DENIED: Guests have read-only files privilege.");
+      setSystemAlertMessage("🚫 Upload Denied: Guests have read-only files privilege.");
       return;
     }
 
@@ -368,7 +399,7 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
     if (!socket) return;
 
     if (session.role === "Guest") {
-      alert("UPLOAD DENIED: Guests have read-only files privilege.");
+      setSystemAlertMessage("🚫 Upload Denied: Guests have read-only files privilege.");
       return;
     }
 
@@ -489,7 +520,10 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
   };
 
   return (
-    <div className="bg-[#0B0B0C] border border-gray-850 rounded-2xl p-0 shadow-[0_22px_70px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col h-[780px] text-zinc-100 font-sans">
+    <div 
+      style={{ height: mobileHeightStyle }}
+      className={`bg-[#0B0B0C] border border-gray-850 rounded-2xl p-0 shadow-[0_22px_70px_rgba(0,0,0,0.8)] overflow-hidden flex flex-col ${mobileHeightStyle ? "" : "h-[calc(100dvh-130px)] min-h-[500px] max-h-[850px]"} text-zinc-100 font-sans`}
+    >
       
       {/* SECTION TOP COMPLICANCE HEADER BAR */}
       <div className="bg-[#111113] border-b border-gray-850 px-6 py-4 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -578,10 +612,10 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
         </div>
 
         {/* MIDDLE COLUMN: REAL-TIME BROADCAST MESSAGE STREAM */}
-        <div className="flex-1 flex flex-col bg-[#0B0B0C] relative min-w-0">
+        <div className="flex-1 flex flex-col bg-[#0B0B0C] relative min-w-0 min-h-0 overflow-hidden">
           
           {/* Mobile Channel Picker Switcher */}
-          <div className="p-2 border-b border-gray-850 flex md:hidden gap-1 overflow-x-auto bg-[#0F0F11]">
+          <div className="p-2 border-b border-gray-850 flex md:hidden gap-1 overflow-x-auto bg-[#0F0F11] shrink-0">
             {CHANNELS.map(chan => (
               <button
                 key={chan.id}
@@ -595,7 +629,7 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
 
           {/* PINNED STAFF ANNOUNCEMENTS DRAWER SECTION */}
           {pinnedList.length > 0 && (
-            <div className="bg-amber-950/10 border-b border-amber-500/20 p-3 px-5 flex items-start gap-3">
+            <div className="bg-amber-950/10 border-b border-amber-500/20 p-3 px-5 flex items-start gap-3 shrink-0">
               <Pin className="w-4 h-4 text-amber-500 shrink-0 mt-0.5 animate-bounce" />
               <div className="flex-1 min-w-0 text-xs">
                 <span className="text-[9px] text-amber-500 tracking-widest uppercase font-mono font-bold block">PINNED REGIONAL ANNOUNCEMENT</span>
@@ -604,31 +638,31 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
                 </p>
               </div>
               <button 
-                onClick={() => alert("NOTICE: Staff bulletins are archived in the News room.")}
-                className="text-zinc-500 hover:text-white text-[10px] underline shrink-0 uppercase font-mono font-bold font-mono"
+                onClick={() => setSystemAlertMessage("NOTICE: Staff bulletins are archived in the News room.")}
+                className="text-zinc-500 hover:text-white text-[10px] underline shrink-0 uppercase font-mono font-bold"
               >
                 View Bulletins ({pinnedList.length})
               </button>
             </div>
           )}
 
-          {/* CORE MESSAGES CONTAINER STREAM */}
+          {/* CORE MESSAGES CONTAINER STREAM - INDEPENDENT SCROLL AREA */}
           <div 
             ref={chatMessagesContainerRef}
-            className="flex-1 overflow-y-auto p-6 space-y-5 scrollbar-thin relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#110B0B] via-[#0B0B0C] to-[#0A0A0A]"
+            className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-6 space-y-4 scrollbar-thin relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#110B0B] via-[#0B0B0C] to-[#0A0A0A]"
           >
-            {currentChannelMessages.length === 0 ? (
+            {currentChannelMessages.filter(m => !(m.system && (m as any).adminOnly && !isStaff)).length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center p-8 text-center max-w-sm mx-auto space-y-3">
-                <div className="w-12 h-12 bg-zinc-950 border border-zinc-800 rounded-full flex items-center justify-center text-zinc-500 text-xl animate-pulse">
+                <div className="w-12 h-12 bg-zinc-950 border border-zinc-800 rounded-2xl flex items-center justify-center text-zinc-400 text-xl shadow-lg">
                   💬
                 </div>
                 <div>
-                  <h4 className="text-xs font-mono font-bold tracking-wider text-zinc-400 uppercase">NO MESSAGE TRANSMISSIONS</h4>
-                  <p className="text-[11px] text-zinc-500 mt-1 leading-relaxed">The sector is currently peaceful. Send the very first social wave to initiate communication!</p>
+                  <h4 className="text-sm font-mono font-bold tracking-wider text-zinc-200 uppercase">No messages yet</h4>
+                  <p className="text-xs text-zinc-400 mt-1 leading-relaxed">No messages yet. Start the conversation!</p>
                 </div>
               </div>
             ) : (
-              currentChannelMessages.map((msg) => {
+              currentChannelMessages.filter(m => !(m.system && (m as any).adminOnly && !isStaff)).map((msg) => {
                 const isMyMessage = msg.senderIgn === session.ign;
                 const badges = getBadgeStyle(msg.senderRole);
 
@@ -751,7 +785,7 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
                                     key={index}
                                     onClick={() => {
                                       if (session.role === "Guest") {
-                                        alert("GUEST READ-ONLY: Guests cannot vote on active community ballot polls.");
+                                        setSystemAlertMessage("🚫 Guest Read-Only: Guests cannot vote on active community ballot polls.");
                                         return;
                                       }
                                       socket?.send(JSON.stringify({
@@ -896,9 +930,9 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
             </div>
           )}
 
-          {/* WORLD CHAT COMPOSER FORM VIEW */}
-          <div className="bg-[#0F0F11] border-t border-gray-850 p-4 shrink-0 space-y-3">
-            <form onSubmit={handleSendMessage} className="flex gap-3 items-center">
+          {/* WORLD CHAT COMPOSER FORM VIEW - PERMANENTLY VISIBLE STICKY FOOTER */}
+          <div className="bg-[#0F0F11] border-t border-gray-850 p-3 sm:p-4 shrink-0 space-y-2 sticky bottom-0 z-20 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <form onSubmit={handleSendMessage} className="flex gap-2 sm:gap-3 items-center">
               
               {/* Extra tools panel buttons */}
               <div className="flex items-center gap-1 bg-black/45 border border-zinc-850 rounded-xl p-1 shrink-0">
@@ -911,7 +945,7 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
                     setIsEmojiPickerOpen(false);
                     setIsGifPickerOpen(false);
                   }}
-                  className={`p-2.5 rounded-lg hover:bg-neutral-900 hover:text-white transition-colors cursor-pointer ${isImagePickerOpen ? "bg-red-950/40 text-red-400 border border-red-900/40" : "text-zinc-400"}`}
+                  className={`p-2 sm:p-2.5 rounded-lg hover:bg-neutral-900 hover:text-white transition-colors cursor-pointer ${isImagePickerOpen ? "bg-red-950/40 text-red-400 border border-red-900/40" : "text-zinc-400"}`}
                   title="Share tactical media map"
                 >
                   <ImageIcon size={16} />
@@ -925,7 +959,7 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
                     setIsEmojiPickerOpen(false);
                     setIsImagePickerOpen(false);
                   }}
-                  className={`p-2.5 rounded-lg hover:bg-neutral-900 hover:text-white transition-colors cursor-pointer ${isGifPickerOpen ? "bg-red-950/40 text-red-400 border border-red-900/40" : "text-zinc-400"}`}
+                  className={`p-2 sm:p-2.5 rounded-lg hover:bg-neutral-900 hover:text-white transition-colors cursor-pointer ${isGifPickerOpen ? "bg-red-950/40 text-red-400 border border-red-900/40" : "text-zinc-400"}`}
                   title="Post action GIFs"
                 >
                   <span className="text-[10px] font-black tracking-tighter leading-none border border-current px-0.5 rounded">GIF</span>
@@ -939,7 +973,7 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
                     setIsGifPickerOpen(false);
                     setIsImagePickerOpen(false);
                   }}
-                  className={`p-2.5 rounded-lg hover:bg-neutral-900 hover:text-white transition-colors cursor-pointer ${isEmojiPickerOpen ? "bg-red-950/40 text-red-400 border border-red-900/40" : "text-zinc-400"}`}
+                  className={`p-2 sm:p-2.5 rounded-lg hover:bg-neutral-900 hover:text-white transition-colors cursor-pointer ${isEmojiPickerOpen ? "bg-red-950/40 text-red-400 border border-red-900/40" : "text-zinc-400"}`}
                   title="Pick chat emojis"
                 >
                   <Smile size={16} />
@@ -950,7 +984,7 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
                   <button
                     type="button"
                     onClick={() => setIsPollCreatorOpen(!isPollCreatorOpen)}
-                    className="p-2.5 rounded-lg hover:bg-neutral-900 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+                    className="p-2 sm:p-2.5 rounded-lg hover:bg-neutral-900 text-zinc-400 hover:text-white transition-colors cursor-pointer"
                     title="Create community poll ballot"
                   >
                     <Sliders size={15} />
@@ -959,25 +993,25 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
               </div>
 
               {/* INPUT MESSAGE BAR */}
-              <div className="flex-1 relative">
+              <div className="flex-1 relative min-w-0">
                 <input
                   type="text"
                   value={inputText}
                   disabled={session.role === "Guest"}
                   onChange={(e) => setInputText(e.target.value)}
-                  placeholder={session.role === "Guest" ? "🚫 READ-ONLY STATE: Assign profile credentials to chat." : "Commence transmission... Use @username reference to mention active eSports players."}
-                  className="w-full bg-black/45 border border-gray-850 focus:border-red-650 rounded-xl px-4 py-3 text-xs outline-none transition-all placeholder-zinc-550 leading-relaxed disabled:opacity-50"
+                  placeholder={session.role === "Guest" ? "🚫 READ-ONLY STATE: Assign profile credentials to chat." : "Commence transmission... Use @username to mention active players."}
+                  className="w-full bg-black/45 border border-gray-850 focus:border-red-650 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-xs outline-none transition-all placeholder-zinc-550 leading-relaxed disabled:opacity-50"
                 />
               </div>
 
               {/* DISPATCH ACTION */}
               <button
                 type="submit"
-                disabled={session.role === "Guest" || !inputText.trim()}
-                className="px-5 py-3 rounded-xl bg-red-650 hover:bg-red-600 disabled:opacity-45 disabled:hover:bg-red-650 text-white font-mono uppercase font-black tracking-widest text-[10px] flex items-center gap-1.5 transition-all cursor-pointer select-none active:scale-95 shrink-0 shadow-lg shadow-red-950/30"
+                disabled={session.role === "Guest" || !inputText.trim() || isSending}
+                className="px-4 sm:px-5 py-2.5 sm:py-3 rounded-xl bg-red-650 hover:bg-red-600 disabled:opacity-40 disabled:hover:bg-red-650 text-white font-mono uppercase font-black tracking-widest text-[10px] flex items-center justify-center gap-1.5 transition-all cursor-pointer select-none active:scale-95 shrink-0 shadow-lg shadow-red-950/30"
               >
-                <span>TRANSMIT</span>
-                <Send size={12} />
+                <span>{isSending ? "SENDING..." : "TRANSMIT"}</span>
+                <Send size={12} className={isSending ? "animate-pulse" : ""} />
               </button>
 
             </form>
@@ -1416,29 +1450,33 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
                         >
                           SUSPEND
                         </button>
-                        <button
-                          type="button"
-                          onClick={() => handleAdminCommandAction("Ban")}
-                          className="px-2 py-1.5 bg-black hover:bg-neutral-900 border border-zinc-800 text-zinc-400 font-extrabold uppercase rounded"
-                        >
-                          BAN
-                        </button>
+                        {session.role === "Owner" && (
+                          <button
+                            type="button"
+                            onClick={() => handleAdminCommandAction("Ban")}
+                            className="px-2 py-1.5 bg-black hover:bg-neutral-900 border border-zinc-800 text-zinc-400 font-extrabold uppercase rounded"
+                          >
+                            BAN
+                          </button>
+                        )}
                       </div>
                     </>
                   )}
                 </div>
 
-                <div className="space-y-2.5 bg-neutral-950/60 p-4 rounded-xl border border-gray-850">
-                  <span className="text-[10px] text-zinc-550 block font-mono font-bold uppercase tracking-wider">ROOM ARCHIVE COMMAND</span>
-                  <p className="text-[10px] text-zinc-500 leading-snug">Owners can instantly purge the active history buffer in the selected regional segment if severe toxic disruptions occur.</p>
-                  <button
-                    type="button"
-                    onClick={handleAdminClearHistory}
-                    className="w-full py-1.5 bg-red-950/20 hover:bg-red-900/30 border border-red-900/30 text-red-400 font-mono text-[9px] uppercase tracking-wider"
-                  >
-                    🗑️ CLEAR CHANNEL CHAT HISTORY
-                  </button>
-                </div>
+                {session.role === "Owner" && (
+                  <div className="space-y-2.5 bg-neutral-950/60 p-4 rounded-xl border border-gray-850">
+                    <span className="text-[10px] text-zinc-550 block font-mono font-bold uppercase tracking-wider">ROOM ARCHIVE COMMAND (OWNER ONLY)</span>
+                    <p className="text-[10px] text-zinc-500 leading-snug">Owners can instantly purge the active history buffer in the selected regional segment if severe toxic disruptions occur.</p>
+                    <button
+                      type="button"
+                      onClick={handleAdminClearHistory}
+                      className="w-full py-1.5 bg-red-950/20 hover:bg-red-900/30 border border-red-900/30 text-red-400 font-mono text-[9px] uppercase tracking-wider"
+                    >
+                      🗑️ CLEAR CHANNEL CHAT HISTORY
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* LIVE REPORTS (COL 7) */}

@@ -676,94 +676,53 @@ interface WorldChatMessage {
 }
 
 let chatHistory: Record<string, WorldChatMessage[]> = {
-  global: [
-    {
-      id: "init-1",
-      channelId: "global",
-      senderIgn: "CV_Mamba_Flick",
-      senderRole: "Team Captain",
-      senderAvatar: "🐍",
-      senderVerified: true,
-      senderLevel: 32,
-      senderReputation: 100,
-      text: "Yo! Welcome to the brand new Fear Global World Chat System. This of course acts as our central social hub 🌟",
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      reactions: { "🔥": ["CV_Slayer_IGL"], "👑": ["ZIM_Tinashe"] }
-    },
-    {
-      id: "init-2",
-      channelId: "global",
-      senderIgn: "ZIM_Tinashe",
-      senderRole: "Member",
-      senderAvatar: "🦁",
-      senderVerified: true,
-      senderLevel: 24,
-      senderReputation: 98,
-      text: "The Saturday championships look stacked! I've been practicing early morning rotations in Erangel. Who's in?",
-      timestamp: new Date(Date.now() - 1800000).toISOString(),
-      reactions: { "👀": ["CV_Mamba_Flick"], "🔥": ["Onyx_Cap_Zero"] }
-    },
-    {
-      id: "init-3",
-      channelId: "global",
-      senderIgn: "ESL_Admin",
-      senderRole: "Head Admin",
-      senderAvatar: "⚖️",
-      senderVerified: true,
-      senderLevel: 50,
-      senderReputation: 100,
-      text: "🛡️ STAFF ANNOUNCEMENT: Respect your fellow combatants. Severe profanity, scam bots, and malicious links are blocked automatically. Repeat offenders face instant mute.",
-      timestamp: new Date(Date.now() - 600000).toISOString(),
-      pinned: true
-    }
-  ],
-  africa: [
-    {
-      id: "init-4",
-      channelId: "africa",
-      senderIgn: "ZIM_Farai",
-      senderRole: "Member",
-      senderAvatar: "🐘",
-      senderVerified: false,
-      senderLevel: 12,
-      senderReputation: 85,
-      text: "Any South Africa or Zimbabwe squads looking for 1 more assaulter for the Cape Town servers?",
-      timestamp: new Date(Date.now() - 2500000).toISOString()
-    }
-  ],
-  europe: [
-    {
-      id: "init-5",
-      channelId: "europe",
-      senderIgn: "GhostLeader",
-      senderRole: "Member",
-      senderAvatar: "💀",
-      senderVerified: true,
-      senderLevel: 18,
-      senderReputation: 90,
-      text: "EU Practice lobbies will be published on-time today. Check details on the Scrim tab.",
-      timestamp: new Date(Date.now() - 1200000).toISOString()
-    }
-  ],
-  asia: [
-    {
-      id: "init-6",
-      channelId: "asia",
-      senderIgn: "Hiroshi_Sato",
-      senderRole: "Member",
-      senderAvatar: "🐲",
-      senderVerified: true,
-      senderLevel: 28,
-      senderReputation: 95,
-      text: "Singapore 1 server has stable 15ms ping today. Ideal for TDM lobby trials.",
-      timestamp: new Date(Date.now() - 900000).toISOString()
-    }
-  ],
+  global: [],
+  africa: [],
+  europe: [],
+  asia: [],
   middle_east: [],
   north_america: [],
   south_america: [],
   oceania: []
 };
+
+// Authoritative server-side role registry
+// Prevents browser impersonation: any user claiming "Owner" or "Admin" must match the server registry.
+const SERVER_AUTHORIZED_ROLES: Record<string, "Owner" | "Head Admin" | "Admin" | "Moderator"> = {
+  "CV_Slayer_IGL": "Owner",
+  "muchecheprince4@gmail.com": "Owner",
+  "Fear_Owner": "Owner",
+  "ESL_Admin": "Head Admin",
+  "CV_Tactical_Coach": "Admin",
+  "CV_Sentinel": "Moderator"
+};
+
+function getVerifiedRole(ign: string, requestedRole?: string): string {
+  const normalized = (ign || "").trim();
+  if (SERVER_AUTHORIZED_ROLES[normalized]) {
+    return SERVER_AUTHORIZED_ROLES[normalized];
+  }
+  // If the requested role is a staff role but IGN is not in SERVER_AUTHORIZED_ROLES, demote to Member!
+  if (["Owner", "Head Admin", "Admin", "Moderator"].includes(requestedRole || "")) {
+    return "Member";
+  }
+  if (requestedRole === "Guest") {
+    return "Guest";
+  }
+  return requestedRole || "Member";
+}
+
+function isStaffRole(role: string): boolean {
+  return ["Owner", "Head Admin", "Admin", "Moderator"].includes(role);
+}
+
+function isOwnerRole(role: string): boolean {
+  return role === "Owner";
+}
+
+function isAdminRole(role: string): boolean {
+  return ["Owner", "Head Admin", "Admin"].includes(role);
+}
 
 function setupWorldChatWebSocket(server: any) {
   const wss = new WebSocketServer({ server });
@@ -782,79 +741,21 @@ function setupWorldChatWebSocket(server: any) {
   // User reputation and levels status cache (persisted in RAM during server runtime)
   let userReputationCache: Record<string, { score: number; level: number; warningsCount: number; muteUntil: string | null; suspendedUntil: string | null }> = {
     "CV_Slayer_IGL": { score: 100, level: 45, warningsCount: 0, muteUntil: null, suspendedUntil: null },
-    "CV_Mamba_Flick": { score: 100, level: 32, warningsCount: 0, muteUntil: null, suspendedUntil: null },
-    "ZIM_Tinashe": { score: 98, level: 24, warningsCount: 0, muteUntil: null, suspendedUntil: null },
-    "Onyx_Cap_Zero": { score: 75, level: 19, warningsCount: 1, muteUntil: null, suspendedUntil: null },
     "ESL_Admin": { score: 100, level: 50, warningsCount: 0, muteUntil: null, suspendedUntil: null }
   };
 
   // Community Reports List
   let chatReports: any[] = [];
-  // Moderation Audit logs with rich pre-populated historical administrative logs
-  let moderationLogs: any[] = [
-    {
-      id: "log-1",
-      timestamp: new Date(Date.now() - 36 * 3600 * 1000).toISOString(),
-      actor: "CV_Slayer_IGL",
-      action: "Role Assignment",
-      category: "PROMOTION",
-      targetUser: "ZIM_Tinashe",
-      reason: "Promoted to primary point operator for elite tier rotation management",
-      details: "Promoted ZIM_Tinashe from Member to Team Captain (IGL Elite status)"
-    },
-    {
-      id: "log-2",
-      timestamp: new Date(Date.now() - 24 * 3600 * 1000).toISOString(),
-      actor: "System Sentinel",
-      action: "Self-Repair Triggered",
-      category: "SECURITY_EVENT",
-      targetUser: "Ecosystem Mainframe",
-      reason: "Automated: Calibrated combat grids and verified API route signatures during integrity scan",
-      details: "Database sync established successfully. Restored system stability metric to 100% stable."
-    },
-    {
-      id: "log-3",
-      timestamp: new Date(Date.now() - 18 * 3600 * 1000).toISOString(),
-      actor: "CV_Slayer_IGL",
-      action: "Updated Language Filters",
-      category: "RULE_CHANGE",
-      targetUser: "Filter Configuration",
-      reason: "Hardened chat spam prevention guidelines. Applied mild censorship and severe keyword block configurations",
-      details: "Toggled censorMild=true, blockSevere=true. Added 'hate', 'scam' to severe blockers list."
-    },
-    {
-      id: "log-4",
-      timestamp: new Date(Date.now() - 12 * 3600 * 1000).toISOString(),
-      actor: "System Sentinel",
-      action: "Anti-Cheat Device Flag",
-      category: "SECURITY_EVENT",
-      targetUser: "X_SniperElite_X",
-      reason: "Automated: Hardware emulator / Rapid-fire macro signatures detected on device port 3000",
-      details: "User flag escalated to Disciplinary Registry. Automated 10-minute warning cooldown applied."
-    },
-    {
-      id: "log-5",
-      timestamp: new Date(Date.now() - 6 * 3600 * 1000).toISOString(),
-      actor: "ESL_Admin",
-      action: "Mute User",
-      category: "MODERATION",
-      targetUser: "Onyx_Cap_Zero",
-      reason: "Repeated spamming of recruiting requests in general scrim lobbies after warning",
-      details: "Issued manual 15-minute lobby chat mute."
-    }
-  ];
+  // Moderation Audit logs for staff
+  let moderationLogs: any[] = [];
 
-  // Active streamers lists mock
-  let streamers = [
-    { name: "CV_Mamba_Flick", title: "Solo King Pro Road to Conqueror 🎯", viewers: 412, category: "PUBG Mobile", gameImg: "🐍", link: "/#/media" },
-    { name: "Slayer_Elite", title: "Clan Leader Scrim Practice with Audio Controls", viewers: 285, category: "PUBG Mobile", gameImg: "🎯", link: "/#/media" },
-    { name: "ZIM_Tinashe", title: "Tactical Radar Scan & Coaching Trials 🦁", viewers: 192, category: "PUBG Mobile", gameImg: "🏆", link: "/#/media" }
-  ];
+  // Active streamers list (clean initial state)
+  let streamers: any[] = [];
 
   // Map to hold messaging timestamps for rate limit
   const msgTimestampsByIpsOrIgns = new Map<string, number[]>();
 
-  // Broadcast helper
+  // Broadcast helper to all connected clients
   function broadcast(payload: any) {
     const data = JSON.stringify(payload);
     wss.clients.forEach(client => {
@@ -864,51 +765,15 @@ function setupWorldChatWebSocket(server: any) {
     });
   }
 
-  // Background interval: Periodically generate simulated chats from esports community stars
-  setInterval(() => {
-    const chatters = [
-      { ign: "CV_Mamba_Flick", role: "Team Captain", avatar: "🐍", verified: true, level: 32, text: "Mirror game play is insane! Always adjust custom claw triggers." },
-      { ign: "ZIM_Tinashe", role: "Member", avatar: "🦁", verified: true, level: 24, text: "Wait, the Saturday Battle Royale placements was updated. Scrim board is live! 🏆" },
-      { ign: "Onyx_Cap_Zero", role: "Member", avatar: "🌪️", verified: false, level: 19, text: "Onyx vipers is looking for 1 assaulter for the squad showoff. DM stats!" },
-      { ign: "Slayer_Elite", role: "Owner", avatar: "🎯", verified: true, level: 45, text: "Everyone, check the Strategy tab. New Erangel split diagrams are added!" },
-      { ign: "Specter_Scope", role: "Member", avatar: "💀", verified: false, level: 15, text: "The recoil analysis on the AI coach module helped me cross a 3.5 K/D metric!" }
-    ];
-
-    const channels = ["global", "africa", "europe", "asia"];
-    const randomChannel = channels[Math.floor(Math.random() * channels.length)];
-    const randomChatter = chatters[Math.floor(Math.random() * chatters.length)];
-    
-    // Safety check for simulation mutes
-    const repState = userReputationCache[randomChatter.ign];
-    if (repState && repState.muteUntil && new Date(repState.muteUntil) > new Date()) {
-      return;
-    }
-
-    const newMessage: WorldChatMessage = {
-      id: "sim-" + Date.now(),
-      channelId: randomChannel,
-      senderIgn: randomChatter.ign,
-      senderRole: randomChatter.role,
-      senderAvatar: randomChatter.avatar,
-      senderVerified: randomChatter.verified,
-      senderLevel: randomChatter.level,
-      senderReputation: repState ? repState.score : 85,
-      text: randomChatter.text,
-      timestamp: new Date().toISOString(),
-      reactions: {}
-    };
-
-    if (!chatHistory[randomChannel]) {
-      chatHistory[randomChannel] = [];
-    }
-    chatHistory[randomChannel].push(newMessage);
-    if (chatHistory[randomChannel].length > 150) chatHistory[randomChannel].shift();
-
-    broadcast({
-      type: "chat_message",
-      message: newMessage
+  // Broadcast helper strictly restricted to authorized staff
+  function broadcastStaffOnly(payload: any) {
+    const data = JSON.stringify(payload);
+    clients.forEach((user, clientWs) => {
+      if (isStaffRole(user.role) && clientWs.readyState === WSWebSocket.OPEN) {
+        clientWs.send(data);
+      }
     });
-  }, 48000); // 48 seconds interval keeps background noise completely immersive when standalone
+  }
 
   wss.on("connection", (ws: any) => {
     // Initial connection default
@@ -920,11 +785,14 @@ function setupWorldChatWebSocket(server: any) {
         
         switch (payload.type) {
           case "init": {
-            const { ign, role, avatar, verified } = payload.user;
+            const rawIgn = (payload.user?.ign || "Guest").trim();
+            const requestedRole = payload.user?.role || "Member";
+            const verifiedRole = getVerifiedRole(rawIgn, requestedRole);
+            const verified = Boolean(SERVER_AUTHORIZED_ROLES[rawIgn] || payload.user?.verified);
             
             // Register or pull from reputation registry
-            if (!userReputationCache[ign]) {
-              userReputationCache[ign] = {
+            if (!userReputationCache[rawIgn]) {
+              userReputationCache[rawIgn] = {
                 score: verified ? 100 : 80,
                 level: 5,
                 warningsCount: 0,
@@ -933,30 +801,56 @@ function setupWorldChatWebSocket(server: any) {
               };
             }
             
-            const state = userReputationCache[ign];
+            const state = userReputationCache[rawIgn];
             const updatedUser = {
-              ign,
-              role,
-              avatar: avatar || "👤",
-              verified: !!verified,
+              ign: rawIgn,
+              role: verifiedRole,
+              avatar: payload.user?.avatar || (verifiedRole === "Owner" ? "🎯" : isStaffRole(verifiedRole) ? "👑" : "🛡️"),
+              verified,
               level: state.level,
               reputation: state.score
             };
             
             clients.set(ws, updatedUser);
 
+            const isStaff = isStaffRole(verifiedRole);
+            const filteredHistory: Record<string, WorldChatMessage[]> = {};
+            for (const [chId, msgs] of Object.entries(chatHistory)) {
+              filteredHistory[chId] = msgs.filter(m => {
+                // If it's an internal admin system message, hide from non-staff
+                if (m.system && (m as any).adminOnly && !isStaff) {
+                  return false;
+                }
+                return true;
+              });
+            }
+
             // Send initialization data packet
-            ws.send(JSON.stringify({
+            const initData: any = {
               type: "init_data",
-              history: chatHistory,
-              pinned: Object.values(chatHistory).flatMap(arr => arr.filter(m => m.pinned)),
+              history: filteredHistory,
+              pinned: Object.values(filteredHistory).flatMap(arr => arr.filter(m => m.pinned)),
               onlineUsers: Array.from(clients.values()),
               streamers,
-              filterConfig,
-              reports: chatReports,
-              auditLogs: moderationLogs,
-              userReputation: state
-            }));
+              userReputation: state,
+              verifiedRole // Authoritative server role returned to client
+            };
+
+            // STRICT DATA ISOLATION: Restricted administrative data sent ONLY to authorized staff
+            if (isStaff) {
+              initData.reports = chatReports;
+              initData.auditLogs = moderationLogs;
+              initData.filterConfig = {
+                censorMild: filterConfig.censorMild,
+                blockSevere: filterConfig.blockSevere,
+                mildWords: filterConfig.mildWords
+              };
+              if (isAdminRole(verifiedRole)) {
+                initData.filterConfig.severeWords = filterConfig.severeWords;
+              }
+            }
+
+            ws.send(JSON.stringify(initData));
 
             // Broadcast presence to all users
             broadcast({
@@ -1215,7 +1109,8 @@ function setupWorldChatWebSocket(server: any) {
 
             chatReports.push(reportObj);
 
-            broadcast({
+            // Broadcast reports ONLY to staff
+            broadcastStaffOnly({
               type: "reports_updated",
               reports: chatReports
             });
@@ -1229,12 +1124,19 @@ function setupWorldChatWebSocket(server: any) {
 
           case "admin_mod_action": {
             const user = clients.get(ws);
-            if (!user || !["Owner", "Head Admin", "Admin", "Moderator"].includes(user.role)) {
-              ws.send(JSON.stringify({ type: "chat_error", error: "Permission Denied: Admin authorization required." }));
+            if (!user || !isStaffRole(user.role)) {
+              ws.send(JSON.stringify({ type: "chat_error", error: "Permission Denied: Staff authorization required." }));
               return;
             }
 
             const { action, targetIgn, reason, durationMinutes, messageId, channelId } = payload;
+
+            // Owner-only action check
+            if (action === "ClearChannel" && !isOwnerRole(user.role)) {
+              ws.send(JSON.stringify({ type: "chat_error", error: "Permission Denied: Only platform Owners can clear room chat history." }));
+              return;
+            }
+
             const tgtState = userReputationCache[targetIgn] || { score: 80, level: 5, warningsCount: 0, muteUntil: null, suspendedUntil: null };
 
             if (action === "Warning") {
@@ -1249,6 +1151,10 @@ function setupWorldChatWebSocket(server: any) {
               tgtState.suspendedUntil = new Date(Date.now() + minutes * 60000).toISOString();
               tgtState.score = Math.max(0, tgtState.score - 30);
             } else if (action === "Ban") {
+              if (!isOwnerRole(user.role)) {
+                ws.send(JSON.stringify({ type: "chat_error", error: "Permission Denied: Only platform Owners can execute permanent bans." }));
+                return;
+              }
               tgtState.suspendedUntil = new Date(Date.now() + 999999 * 60000).toISOString();
               tgtState.score = 0;
             } else if (action === "DeleteMessage") {
@@ -1270,13 +1176,13 @@ function setupWorldChatWebSocket(server: any) {
                   {
                     id: "sys-clear-" + Date.now(),
                     channelId,
-                    senderIgn: "System Moderator",
+                    senderIgn: "System Sentinel",
                     senderRole: "Admin",
                     senderAvatar: "⚖️",
                     senderVerified: true,
                     senderLevel: 100,
                     senderReputation: 100,
-                    text: "🗑️ This room history has been cleared by a moderator.",
+                    text: "🗑️ This room history has been cleared by a platform administrator.",
                     timestamp: new Date().toISOString(),
                     system: true
                   }
@@ -1310,26 +1216,28 @@ function setupWorldChatWebSocket(server: any) {
               }
             });
 
-            broadcast({
+            // Staff-only broadcasts
+            broadcastStaffOnly({
               type: "reports_updated",
               reports: chatReports
             });
 
-            broadcast({
+            broadcastStaffOnly({
               type: "audit_logs",
               logs: moderationLogs
             });
 
-            broadcast({
+            // Operational alert to target
+            ws.send(JSON.stringify({
               type: "system_notify",
-              message: `⚖️ Admin action applied: User ${targetIgn} issued ${action}. Rule compliance enforced.`
-            });
+              message: `⚖️ Action applied: ${action} on ${targetIgn}.`
+            }));
             break;
           }
 
           case "update_filter_config": {
             const user = clients.get(ws);
-            if (!user || !["Owner", "Head Admin", "Admin"].includes(user.role)) {
+            if (!user || !isAdminRole(user.role)) {
               ws.send(JSON.stringify({ type: "chat_error", error: "Permission Denied: Administrator level only." }));
               return;
             }
@@ -1350,30 +1258,30 @@ function setupWorldChatWebSocket(server: any) {
               category: "RULE_CHANGE",
               targetUser: "Filter Configuration",
               reason: `Adjusted Smart Filters config: censorMild=${!!censorMild}, blockSevere=${!!blockSevere}`,
-              details: `Active Mild Words: [${filterConfig.mildWords.join(", ")}], Severe Words: [${filterConfig.severeWords.join(", ")}]`
+              details: `Active Mild Words: [${filterConfig.mildWords.join(", ")}]`
             });
 
-            broadcast({
+            broadcastStaffOnly({
               type: "filter_config_updated",
               config: filterConfig
             });
 
-            broadcast({
+            broadcastStaffOnly({
               type: "audit_logs",
               logs: moderationLogs
             });
 
-            broadcast({
+            ws.send(JSON.stringify({
               type: "system_notify",
               message: `⚙️ Smart Language Filters updated by administrator ${user.ign}.`
-            });
+            }));
             break;
           }
 
           case "pin_chat_message": {
             const user = clients.get(ws);
-            if (!user || !["Owner", "Head Admin", "Admin", "Moderator"].includes(user.role)) {
-              ws.send(JSON.stringify({ type: "chat_error", error: "Permission Denied." }));
+            if (!user || !isStaffRole(user.role)) {
+              ws.send(JSON.stringify({ type: "chat_error", error: "Permission Denied: Staff authorization required." }));
               return;
             }
 
@@ -1394,6 +1302,12 @@ function setupWorldChatWebSocket(server: any) {
           }
 
           case "fetch_audit_logs": {
+            const user = clients.get(ws);
+            if (!user || !isStaffRole(user.role)) {
+              ws.send(JSON.stringify({ type: "chat_error", error: "Permission Denied: Administrative logs are restricted to staff." }));
+              return;
+            }
+
             ws.send(JSON.stringify({
               type: "audit_logs",
               logs: moderationLogs
@@ -1403,13 +1317,8 @@ function setupWorldChatWebSocket(server: any) {
 
           case "log_admin_action": {
             const user = clients.get(ws);
-            if (!user) {
-              ws.send(JSON.stringify({ type: "chat_error", error: "Permission Denied: Unauthenticated." }));
-              return;
-            }
-
-            if (!["Owner", "Head Admin", "Admin", "Moderator"].includes(user.role)) {
-              ws.send(JSON.stringify({ type: "chat_error", error: "Permission Denied: Admin roles only." }));
+            if (!user || !isStaffRole(user.role)) {
+              ws.send(JSON.stringify({ type: "chat_error", error: "Permission Denied: Staff authorization required." }));
               return;
             }
 
@@ -1427,7 +1336,7 @@ function setupWorldChatWebSocket(server: any) {
               durationMinutes: 0
             });
 
-            broadcast({
+            broadcastStaffOnly({
               type: "audit_logs",
               logs: moderationLogs
             });

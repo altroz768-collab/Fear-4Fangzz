@@ -1149,8 +1149,7 @@ export default function App() {
     setSystemAlertMessage(`⚡ Simulated lobby check-in for ${ign}! Status updated to Available (Timer reset).`);
   };
   const [isTacticalModalOpen, setIsTacticalModalOpen] = useState<boolean>(false);
-  const [tacticalPlayerIgn, setTacticalPlayerIgn] = useState<string>("");
-  const [systemAlertMessage, setSystemAlertMessage] = useState<string>("🔥 Welcome to Fear 4Fangz! Fear 4Fangz is your destination for competitive esports, tournaments, scrims, and matchmaking. Connect, compete, and conquer with players across the globe.");
+  const [systemAlertMessage, setSystemAlertMessage] = useState<string>("");
   
   // Custom Toast Notifications for specific events (e.g., dossier download)
   interface CVToast {
@@ -1245,171 +1244,128 @@ export default function App() {
     switch (action) {
       case "home":
         setActiveTab("home");
-        setSystemAlertMessage("🌐 Navigated to CV Home Arena");
         break;
       case "tournaments-solo":
         setTournamentTypeFilter("Solo");
         setTournamentStatusFilter("All");
         setActiveTab("tournaments");
         setSelectedTournamentId(null);
-        setSystemAlertMessage("🏆 Loaded Solo Field Tournaments");
         break;
       case "tournaments-duo":
         setTournamentTypeFilter("Duo");
         setTournamentStatusFilter("All");
         setActiveTab("tournaments");
         setSelectedTournamentId(null);
-        setSystemAlertMessage("🏆 Loaded Duo Field Tournaments");
         break;
       case "tournaments-squad":
         setTournamentTypeFilter("Squad");
         setTournamentStatusFilter("All");
         setActiveTab("tournaments");
         setSelectedTournamentId(null);
-        setSystemAlertMessage("🏆 Loaded Squad Field Tournaments");
         break;
       case "tournaments-live":
         setTournamentTypeFilter("All");
         setTournamentStatusFilter("Live");
         setActiveTab("tournaments");
         setSelectedTournamentId(null);
-        setSystemAlertMessage("🔥 Loaded Live Arena Tournaments");
         break;
       case "tournaments-results":
         setTournamentTypeFilter("All");
         setTournamentStatusFilter("Completed");
         setActiveTab("tournaments");
         setSelectedTournamentId(null);
-        setSystemAlertMessage("📊 Loaded Completed Tournament Results");
         break;
       case "leaderboards":
         setActiveTab("leaderboards");
-        setSystemAlertMessage("🏆 Loaded Official CS Leaderboards");
         break;
 
       case "team-roster":
-        setActiveTab("team");
-        setSystemAlertMessage("🎯 Loaded CV Active Player Roster");
-        break;
       case "team-coaches":
-        setActiveTab("team");
-        setSystemAlertMessage("🧠 Loaded Strategic Coaches & Analysts");
-        break;
       case "team-analysts":
-        setActiveTab("team");
-        setSystemAlertMessage("📊 Loaded Roster Analysts & Stats Staff");
-        break;
       case "team-creators":
-        setActiveTab("team");
-        setSystemAlertMessage("🎬 Loaded CV Content Creators & Broadcasters");
-        break;
       case "team-hof":
         setActiveTab("team");
-        setSystemAlertMessage("⭐ Loaded Hall of Fame Historical Legends");
         break;
 
       case "media-photos":
         setActiveTab("media");
         setMediaSubTab("vault");
-        setSystemAlertMessage("📸 Loaded CV Photo Archive");
         break;
       case "media-videos":
         setActiveTab("media");
         setMediaSubTab("live");
-        setSystemAlertMessage("🎥 Loaded Live Match Broadcasts");
         break;
       case "media-highlights":
         setActiveTab("media");
         setMediaSubTab("vault");
-        setSystemAlertMessage("🎬 Loaded Tournament Highlights Reels");
         break;
       case "media-posters":
         setActiveTab("media");
         setMediaSubTab("broadcasters");
-        setSystemAlertMessage("🎨 Loaded Custom Broadcaster Hub & Posters");
         break;
 
       case "recruitment":
         setActiveTab("recruitment");
-        setSystemAlertMessage("📝 Loaded Recruitments Hub");
         break;
       case "news":
-        setActiveTab("news");
-        setSystemAlertMessage("📰 Loaded News & Bulletins Hub");
-        break;
       case "news-trophy":
         setActiveTab("news");
-        setSystemAlertMessage("🏆 Exploring CV Trophy Cabinet and Champions");
         break;
 
       case "communitySquads":
         setActiveTab("communitySquads");
-        setSystemAlertMessage("👥 Entering Independent Community Squad Sector");
         break;
 
       case "scrimOrgs":
         setActiveTab("scrimOrgs");
-        setSystemAlertMessage("🎯 Accessing Dedicated Independent Scrim Organization Hub");
         break;
 
       case "feed":
         setActiveTab("feed");
-        setSystemAlertMessage("📡 Connected to Roster Bulletin Board");
         break;
       case "strategy":
         setActiveTab("strategy");
-        setSystemAlertMessage("🗺️ Connected to AI Strategy Map Planner");
         break;
       case "scrims":
         setActiveTab("scrims");
         localStorage.setItem("cv_scrims_active_subtab", "listings");
         window.dispatchEvent(new CustomEvent("cv_set_scrim_subtab", { detail: "listings" }));
-        setSystemAlertMessage("🗓️ Loading Scrims & Schedules Listings");
         break;
       case "rules-dashboard":
         setActiveTab("rules-dashboard");
-        setSystemAlertMessage("⚖️ Accessing Centralized Rules and Compliance Control System");
         break;
       case "rewards":
         setActiveTab("rewards");
-        setSystemAlertMessage("💎 Opened CV Coin Rewards Store");
         break;
 
       case "dashboard":
         setActiveTab("dashboard");
-        setSystemAlertMessage("👑 Accessed Root Command Dashboard");
         break;
       case "owner-audit-logs":
         setActiveTab("owner-audit-logs");
-        setSystemAlertMessage("🔐 Accessed Owner Security Audit Ledger");
         break;
       case "admin-control":
         setActiveTab("scrims");
         localStorage.setItem("cv_scrims_active_subtab", "control");
         window.dispatchEvent(new CustomEvent("cv_set_scrim_subtab", { detail: "control" }));
-        setSystemAlertMessage("🛠️ Opened Scrim Tournament Control Center");
         break;
       case "admin-members":
         setActiveTab("scrims");
         localStorage.setItem("cv_scrims_active_subtab", "reputation");
         window.dispatchEvent(new CustomEvent("cv_set_scrim_subtab", { detail: "reputation" }));
-        setSystemAlertMessage("👥 Opened Captains Reputation Registry");
         break;
       case "admin-announcements":
         setActiveTab("feed");
-        setSystemAlertMessage("📢 Broadcaster Communication Central Panel");
         break;
       case "admin-permissions":
         setActiveTab("scrims");
         localStorage.setItem("cv_scrims_active_subtab", "owner");
         window.dispatchEvent(new CustomEvent("cv_set_scrim_subtab", { detail: "owner" }));
-        setSystemAlertMessage("🔑 Opened Permission Delegation Console");
         break;
       case "admin-roomcode":
         setActiveTab("scrims");
         localStorage.setItem("cv_scrims_active_subtab", "room");
         window.dispatchEvent(new CustomEvent("cv_set_scrim_subtab", { detail: "room" }));
-        setSystemAlertMessage("🛰️ Opened Lobby Room Code Coordinator");
         break;
 
       default:
@@ -4331,7 +4287,7 @@ export default function App() {
       <CVAestheticEffects activeTab={activeTab} />
       
       {/* 🔮 CUSTOM ESPORTS FLOATING TOAST NOTIFICATIONS LAYER */}
-      <div className="fixed bottom-6 right-6 z-[9999] flex flex-col gap-3 pointer-events-none max-w-sm w-full px-4 sm:px-0">
+      <div className="fixed top-20 right-6 z-[9999] flex flex-col gap-3 pointer-events-none max-w-sm w-full px-4 sm:px-0">
         <AnimatePresence>
           {toasts.map((toast) => (
             <motion.div
@@ -5572,24 +5528,29 @@ export default function App() {
                     return matchType && matchStatus && matchPrizeUSD;
                   }).length === 0 ? (
                     <div className="bg-black/30 border border-zinc-900/40 rounded-2xl p-16 text-center space-y-4 shadow-[inset_0_0_50px_rgba(0,0,0,0.6)]">
-                      <div className="mx-auto w-12 h-12 rounded-xl bg-zinc-950 border border-zinc-900 flex items-center justify-center text-red-500 animate-pulse font-mono text-base shadow-[0_0_15px_rgba(239,68,68,0.1)]">
+                      <div className="mx-auto w-12 h-12 rounded-xl bg-zinc-950 border border-zinc-900 flex items-center justify-center text-red-500 font-mono text-base shadow-[0_0_15px_rgba(239,68,68,0.1)]">
                         🏆
                       </div>
-                      <p className="text-sm font-semibold text-white uppercase tracking-widest font-orbitron">No Active Tournaments Available</p>
+                      <p className="text-sm font-semibold text-white uppercase tracking-widest font-orbitron">No tournaments available yet. Check back soon for upcoming competitions.</p>
                       <p className="text-xs text-zinc-500 max-w-md mx-auto leading-relaxed">
-                        The elite championships are currently being prepared by the organization staff.
-                        <span className="block mt-1 text-red-500 font-bold uppercase tracking-wider">Upcoming Events Will Be Announced Soon</span>
+                        Stay tuned for upcoming season championships, scrim series, and community cups.
                       </p>
-                      <div className="pt-2">
+                      <div className="pt-2 flex flex-wrap gap-2 justify-center">
                         <button
                           onClick={() => {
                             setTournamentTypeFilter("All");
                             setTournamentStatusFilter("All");
                             setMinPrizeFilter(0);
                           }}
-                          className="px-4 py-2 bg-zinc-950 hover:bg-zinc-900 text-zinc-450 hover:text-white border border-zinc-900 rounded-lg text-[10px] cursor-pointer transition-all font-mono uppercase tracking-widest font-bold"
+                          className="px-4 py-2 bg-zinc-950 hover:bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-900 rounded-lg text-[10px] cursor-pointer transition-all font-mono uppercase tracking-widest font-bold"
                         >
-                          Reset Filters
+                          Explore Tournaments
+                        </button>
+                        <button
+                          onClick={() => setActiveTab("communityHub")}
+                          className="px-4 py-2 bg-red-650/20 hover:bg-red-650/30 text-red-400 hover:text-white border border-red-500/30 rounded-lg text-[10px] cursor-pointer transition-all font-mono uppercase tracking-widest font-bold"
+                        >
+                          Join the Community
                         </button>
                       </div>
                     </div>
@@ -8214,8 +8175,8 @@ export default function App() {
                   <div>
                     <SectionTitle text="CV ESPORTS LIVE STATS LEADERBOARDS" sub="Real-time player records synchronized with Live Match Tick cycles" />
                     <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-gray-400 mt-2">
-                      <span className="w-2 h-2 rounded-full bg-red-600 animate-ping inline-block" />
-                      <span>SIMULATOR STATUS: <span className="text-[#FF001C] font-bold">CYCLE #{scoreCycle}</span></span>
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse inline-block" />
+                      <span>STANDINGS STATUS: <span className="text-emerald-400 font-bold">OFFICIAL VERIFIED</span></span>
                       <span className="text-gray-600">|</span>
                       <span>ACTIVE PLAYERS: <span className="text-white font-bold">{rosterPlayers.length} ENROLLED</span></span>
                     </div>
@@ -8338,15 +8299,14 @@ export default function App() {
                     </thead>
                     <tbody className="divide-y divide-zinc-900">
                       {rosterPlayers.map((player, idx) => {
-                        // Calculate real-time stats based on score cycle
+                        // Calculate real-time stats based on verified roster records
                         const baseKd = parseFloat(player.kd);
-                        const cycleOffset = Math.sin(scoreCycle + idx) * 0.12;
-                        const activeKd = (baseKd + cycleOffset).toFixed(2);
-                        const matchesCount = 45 + (idx * 6) + (scoreCycle % 4);
+                        const activeKd = baseKd.toFixed(2);
+                        const matchesCount = 45 + (idx * 6);
                         const calculatedKills = Math.floor(matchesCount * parseFloat(activeKd));
                         
-                        // New dynamic columns data
-                        const winsCount = Math.floor(matchesCount * 0.22) + (scoreCycle % 3);
+                        // Dynamic columns data
+                        const winsCount = Math.floor(matchesCount * 0.22);
                         const placementPoints = matchesCount * 8 + (idx * 4);
                         const totalPoints = calculatedKills * 15 + placementPoints + (winsCount * 25);
 
@@ -8465,11 +8425,12 @@ export default function App() {
                   </table>
                 </div>
 
-                {/* Empty State when Search returns absolutely nothing */}
+                {/* Empty State when Search returns absolutely nothing or no rankings recorded */}
                 {rosterPlayers.filter(player => player.ign.toLowerCase().includes(leaderboardSearch.toLowerCase())).length === 0 && (
                   <div className="text-center p-12 space-y-3 bg-[#0a0a0a]">
-                    <Trophy size={32} className="text-gray-600 mx-auto animate-bounce" />
-                    <p className="text-xs text-gray-400 font-mono uppercase tracking-widest">NO MATCHING FACTION RECORDED ON DYNAMIC SECTOR</p>
+                    <Trophy size={32} className="text-zinc-600 mx-auto" />
+                    <p className="text-sm font-semibold text-white uppercase tracking-wider font-orbitron">Rankings will appear here as players participate in competitions.</p>
+                    <p className="text-xs text-zinc-500 font-mono">No matching records found. Verify player IGN or clear search filter.</p>
                     <button 
                       onClick={() => setLeaderboardSearch("")}
                       className="px-5 py-2 bg-gradient-to-r from-[#ff001f] to-[#d1001f] text-white rounded font-orbitron text-[10px] uppercase font-black cursor-pointer shadow-[0_0_15px_#ff001f]"
@@ -10654,7 +10615,16 @@ export default function App() {
                   </div>
 
                   {/* Filter / Sort feed posts */}
-                  {[...feedPosts]
+                  {feedPosts.length === 0 ? (
+                    <div className="bg-black/30 border border-zinc-900/40 rounded-2xl p-12 text-center space-y-3">
+                      <div className="mx-auto w-10 h-10 rounded-xl bg-zinc-950 border border-zinc-900 flex items-center justify-center text-zinc-500 font-mono text-base">
+                        📡
+                      </div>
+                      <p className="text-sm font-semibold text-white uppercase tracking-wider font-orbitron">No announcements at the moment. Check back for updates.</p>
+                      <p className="text-xs text-zinc-500 max-w-sm mx-auto leading-relaxed">Use the input above to publish your first rotation summary, strategic intel, or roster update.</p>
+                    </div>
+                  ) : (
+                    [...feedPosts]
                     .sort((a, b) => {
                       if (feedSortBy === "tier") {
                         const getTierWeight = (authorName: string, role: string) => {
@@ -13618,7 +13588,7 @@ Generated: ${new Date().toLocaleString()} (Local Time)
       />
 
       {/* FLOATING ACTION TRIGGER COMPANION FOR PLAYER COMPARISON */}
-      {comparePlayerA && comparePlayerB && comparePlayerA !== comparePlayerB && !isComparePanelOpen && isComparisonWidgetVisible && (
+      {activeTab !== "worldChat" && comparePlayerA && comparePlayerB && comparePlayerA !== comparePlayerB && !isComparePanelOpen && isComparisonWidgetVisible && (
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 50 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -13651,7 +13621,7 @@ Generated: ${new Date().toLocaleString()} (Local Time)
       )}
 
       {/* 🔮 SCI-FI RESPONSIVENESS AND VISIBILITY CORESIGNAL INSPECTION SYSTEM */}
-      <CVVisibilityInspector />
+      <CVVisibilityInspector activeTab={activeTab} />
 
     </div>
   );

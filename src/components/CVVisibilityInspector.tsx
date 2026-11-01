@@ -17,7 +17,14 @@ interface ScanResult {
   rect?: DOMRect;
 }
 
-export default function CVVisibilityInspector() {
+interface CVVisibilityInspectorProps {
+  activeTab?: string;
+}
+
+export default function CVVisibilityInspector({ activeTab }: CVVisibilityInspectorProps) {
+  if (activeTab === "worldChat") {
+    return null;
+  }
   const [isOpen, setIsOpen] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
@@ -351,12 +358,12 @@ export default function CVVisibilityInspector() {
 
   return (
     <>
-      {/* FLOATING ACTION TRIGGER PULSING EYE ICON AT BOTTOM RIGHT OUTSIDE GENERAL MENUS */}
-      <div className="fixed bottom-6 right-6 z-[100] flex flex-col items-end gap-1.5 font-mono select-none">
+      {/* FLOATING ACTION TRIGGER PULSING EYE ICON DOCKED AT BOTTOM LEFT OUTSIDE GENERAL MENUS */}
+      <div className="fixed bottom-24 left-6 z-[40] hidden lg:flex flex-col items-start gap-1.5 font-mono select-none">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          className="bg-black/90 border border-red-500/30 rounded-lg p-2 text-[8px] text-zinc-400 max-w-[170px] uppercase font-bold text-right shadow-lg hidden md:block"
+          className="bg-black/90 border border-red-500/30 rounded-lg p-2 text-[8px] text-zinc-400 max-w-[170px] uppercase font-bold text-left shadow-lg"
         >
           <span>🚨 Visibility HUD</span>
           <span className="block text-[7px] text-red-500 animate-pulse mt-0.5">Diagnose Viewport Layouts</span>
@@ -368,12 +375,12 @@ export default function CVVisibilityInspector() {
             setIsOpen(true);
             if (!hasScanned) runActiveScan();
           }}
-          className="w-14 h-14 bg-gradient-to-br from-[#0c0505] via-[#100606] to-[#ff001c]/30 border-2 border-[#ff001c]/60 rounded-full flex items-center justify-center text-red-500 hover:text-white cursor-pointer shadow-[0_0_20px_rgba(255,0,31,0.55)] hover:shadow-[0_0_35px_rgba(255,0,31,0.8)] duration-300 hover:scale-110 active:scale-95 group relative overflow-hidden"
+          className="w-12 h-12 bg-gradient-to-br from-[#0c0505] via-[#100606] to-[#ff001c]/30 border-2 border-[#ff001c]/60 rounded-full flex items-center justify-center text-red-500 hover:text-white cursor-pointer shadow-[0_0_20px_rgba(255,0,31,0.55)] hover:shadow-[0_0_35px_rgba(255,0,31,0.8)] duration-300 hover:scale-105 active:scale-95 group relative overflow-hidden"
           title="Start Unified Website Layout & Sizing Check"
         >
           {/* Neon spinning orbit boundaries */}
           <div className="absolute inset-0.5 rounded-full border border-dashed border-red-500/20 group-hover:rotate-180 duration-1000 transition-transform" />
-          <Eye size={24} className="text-[#ff001c] group-hover:scale-105 animate-pulse" />
+          <Eye size={20} className="text-[#ff001c] group-hover:scale-105 animate-pulse" />
         </button>
       </div>
 

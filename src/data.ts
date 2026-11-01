@@ -6,40 +6,7 @@ export const INITIAL_RECRUITS: RecruitmentApplication[] = [];
 
 export const INITIAL_SCRIMS: ScrimSession[] = [];
 
-export const INITIAL_FEED_POSTS: FeedPost[] = [
-  {
-    id: "post_initial_1",
-    author: "CV_Slayer_IGL",
-    role: "Team Captain",
-    avatarSeed: "slayer",
-    content: "🎯 TEAM BRIEFING: Squad, please review our aggressive rotation waypoints and Pochinki Hills setup for the upcoming match. Ensure you practice this entry line in scrims today. Map details on Erangel: https://pubg.com/maps/erangel",
-    likes: 12,
-    comments: [
-      { id: "c1", author: "CV_Mamba_Flick", role: "Team Captain", text: "Got it! Practiced the east ridge bridge hold yesterday.", timestamp: new Date(Date.now() - 3600000 * 2).toISOString() }
-    ],
-    timestamp: new Date(Date.now() - 3600000 * 3).toISOString()
-  },
-  {
-    id: "post_initial_2",
-    author: "CV_Tactical_Coach",
-    role: "Admin",
-    avatarSeed: "coach",
-    content: "📸 CHAMPIONSHIP VENUE RECON: Check out the physical tournament stage layout, network latency monitors, and team setup specifications for the offline championship! Verify tournament specs: https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=600",
-    likes: 8,
-    comments: [],
-    timestamp: new Date(Date.now() - 3600000 * 8).toISOString()
-  },
-  {
-    id: "post_initial_3",
-    author: "CV_Vance_Scout",
-    role: "Squad Leader",
-    avatarSeed: "scout",
-    content: "🛡️ DEFENSIVE PROTOCOL: We need a secure hold on Pecado Hills to intercept the western rotation pathing. Miramar strategic coordinate: https://pubg.com/maps/miramar",
-    likes: 15,
-    comments: [],
-    timestamp: new Date(Date.now() - 3600000 * 12).toISOString()
-  }
-];
+export const INITIAL_FEED_POSTS: FeedPost[] = [];
 
 export const INITIAL_STRATEGY_MAPS: MapStrategy[] = [
   {

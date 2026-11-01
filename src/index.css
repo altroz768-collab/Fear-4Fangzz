@@ -1,0 +1,373 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;750;900&family=Rajdhani:wght@500;600;700&family=Exo+2:ital,wght@0,400;0,650;0,800;1,400&family=Bebas+Neue&family=Inter:wght@400;500;600;700;800;900&family=Chakra+Petch:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Russo+One&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-primary-red: #ff001f;
+  --color-secondary-red: #d1001f;
+  --color-dark-red: #660000;
+  --color-black-bg: #050505;
+  --color-dark-bg: #0a0a0a;
+  --color-card-bg: #111111;
+  --color-gray-text: #888888;
+  --color-esports-border: rgba(255, 0, 31, 0.25);
+  
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-orbitron: "Orbitron", sans-serif;
+  --font-rajdhani: "Rajdhani", sans-serif;
+  --font-exo: "Exo 2", sans-serif;
+  --font-bebas: "Bebas Neue", sans-serif;
+  --font-chakra: "Chakra Petch", sans-serif;
+  --font-russo: "Russo One", sans-serif;
+}
+
+@layer utilities {
+  /* Esports Crimson Glow Filters */
+  .crimson-glow {
+    filter: drop-shadow(0 0 8px rgba(255, 0, 31, 0.6));
+  }
+  .crimson-glow-strong {
+    filter: drop-shadow(0 0 15px rgba(255, 0, 31, 0.95)) drop-shadow(0 0 35px rgba(255, 0, 31, 0.4));
+  }
+  
+  /* Standard Esports Card Style & Hover Glow Target */
+  .esports-card {
+    background: #111111;
+    border: 1px solid rgba(255, 0, 31, 0.25);
+    border-radius: 12px;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .esports-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0 25px rgba(255, 0, 31, 0.4);
+    border-color: rgba(255, 0, 31, 0.6);
+  }
+
+  /* Esports Button Glow Style & Hover */
+  .esports-btn {
+    background: #ff001f;
+    color: #ffffff;
+    font-weight: 800;
+    font-family: var(--font-sans);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .esports-btn:hover {
+    background: #ffffff;
+    color: #ff001f;
+    box-shadow: 0 0 30px #ff001f;
+    transform: scale(1.02);
+  }
+
+  /* Secondary Outline Button */
+  .esports-btn-outline {
+    background: transparent;
+    border: 1px solid rgba(255, 0, 31, 0.6);
+    color: #ffffff;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .esports-btn-outline:hover {
+    background: rgba(255, 0, 31, 0.1);
+    box-shadow: 0 0 15px rgba(255, 0, 31, 0.3);
+    border-color: #ff001f;
+  }
+  
+  /* Custom scrollbars */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: #050505;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #ff001f;
+    border-radius: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #ff455b;
+  }
+
+  /* No scrollbar */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@keyframes lightning-flow {
+  0%, 100% {
+    opacity: 0.15;
+    transform: scale(1);
+    filter: saturate(1) contrast(1);
+  }
+  50% {
+    opacity: 0.35;
+    transform: scale(1.02);
+    filter: saturate(1.8) contrast(1.2);
+  }
+}
+
+@keyframes subtle-glow {
+  0%, 100% {
+    opacity: 0.15;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.28;
+    transform: scale(1.015);
+  }
+}
+
+@keyframes neon-pulse-red {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(255, 0, 31, 0.2), inset 0 0 5px rgba(255, 0, 31, 0.1);
+    border-color: rgba(255, 0, 31, 0.2);
+  }
+  55% {
+    box-shadow: 0 0 15px rgba(255, 0, 31, 0.6), inset 0 0 10px rgba(255, 0, 31, 0.3);
+    border-color: rgba(255, 0, 31, 0.7);
+  }
+}
+
+@keyframes scanlines {
+  0% {
+    background-position: 0 0;
+  }
+  100% {
+    background-position: 0 100%;
+  }
+}
+
+.animate-lightning {
+  animation: subtle-glow 8s ease-in-out infinite;
+}
+
+.animate-neon-pulse {
+  animation: neon-pulse-red 3s infinite ease-in-out;
+}
+
+.scanline-overlay {
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%, 
+    rgba(0, 0, 0, 0.25) 50%
+  );
+  background-size: 100% 4px;
+  animation: scanlines 20s linear infinite;
+  pointer-events: none;
+}
+
+@keyframes telemetry-readout-blink {
+  0%, 100% {
+    opacity: 1;
+    filter: drop-shadow(0 0 4px rgba(255, 0, 31, 0.6));
+  }
+  48%, 52% {
+    opacity: 0.42;
+    filter: drop-shadow(0 0 1px rgba(255, 0, 31, 0.1));
+  }
+}
+
+.telemetry-readout-blink,
+#tdm-telemetry-console-deck .vintage-glow-readout {
+  animation: telemetry-readout-blink 2.5s infinite ease-in-out;
+}
+
+/* ==========================================================================
+   📱🖥️ CV ESPORTS UNIVERSAL RESPONSIVE DESIGN SYSTEM OVERRIDES & UTILITIES
+   ========================================================================== */
+
+@layer utilities {
+  /* Dynamic Anti-Cropping & Scaling Image Shield */
+  .esports-image-shield {
+    object-fit: cover;
+    object-position: center;
+    max-width: 100%;
+    height: auto;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  /* Universal Responsive Table Guard (Card layout fallback or smooth horizontal touch-scrolling) */
+  .cv-responsive-table-container {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #ff001f rgba(0, 0, 0, 0.4);
+    border-radius: 12px;
+  }
+  
+  /* Layout stress prevention container */
+  .cv-layout-clamped-wrapper {
+    width: 100%;
+    max-width: 80rem;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Micro-animations reduced intensity on low-end/mobile viewports */
+  @media (max-width: 640px) {
+    .animate-ping, .animate-bounce, .animate-spin-slow {
+      animation-duration: 4s !important; /* Half speed/reduced frame jumps */
+    }
+    
+    /* Touch target minimum spacing enforcer */
+    .touch-target-compliant {
+      min-height: 44px !important;
+      padding-top: 0.75rem !important;
+      padding-bottom: 0.75rem !important;
+    }
+  }
+
+  /* 4K and Ultra-Wide container density balancing */
+  @media (min-width: 1920px) {
+    .max-w-7xl {
+      max-width: 1600px !important;
+    }
+  }
+  @media (min-width: 2560px) {
+    .max-w-7xl {
+      max-width: 2200px !important;
+    }
+  }
+}
+
+/* ==========================================================================
+   🚨 GLOBAL LIGHT THEME (LIGHT MODE) OVERRIDES & STYLING CORE
+   ========================================================================== */
+html.light, html.light body {
+  background-color: #f6f8fa !important;
+  color: #111827 !important;
+}
+
+html.light header {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #e5e7eb !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05) !important;
+}
+
+html.light header span, 
+html.light header button, 
+html.light header nav button,
+html.light header .text-white {
+  color: #111827 !important;
+}
+
+html.light header nav button.text-zinc-400 {
+  color: #4b5563 !important;
+}
+
+html.light header nav button.text-zinc-400:hover {
+  color: #111827 !important;
+  background-color: rgba(243, 244, 246, 0.9) !important;
+}
+
+/* Global Light Theme Overrides for Neutral Grays and Dark Backgrounds */
+html.light .bg-\[\#050505\],
+html.light .bg-\[\#0a0a0a\],
+html.light .bg-neutral-950,
+html.light .bg-zinc-950,
+html.light .bg-zinc-900,
+html.light .bg-neutral-900,
+html.light .bg-black,
+html.light .bg-\[\#0c0c0e\],
+html.light .bg-\[\#09090b\],
+html.light .bg-\[\#090a0d\] {
+  background-color: #f6f8fa !important;
+  color: #111827 !important;
+}
+
+html.light .bg-\[\#111111\],
+html.light .bg-\[\#0d0f14\],
+html.light .bg-zinc-900\/50,
+html.light .bg-zinc-950\/40,
+html.light .bg-zinc-900\/30,
+html.light .bg-zinc-900\/40,
+html.light .bg-[#0b0c10],
+html.light .bg-\[\#0b0c10\],
+html.light .bg-neutral-900\/80,
+html.light .bg-[#0e1014],
+html.light .bg-\[\#0e1014\],
+html.light .bg-\[\#121212\]\/80 {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+}
+
+html.light .border-zinc-900,
+html.light .border-zinc-850,
+html.light .border-zinc-800,
+html.light .border-neutral-800,
+html.light .border-neutral-900 {
+  border-color: #e5e7eb !important;
+}
+
+html.light .text-zinc-300,
+html.light .text-stone-300,
+html.light .text-zinc-400,
+html.light .text-zinc-500,
+html.light .text-stone-400 {
+  color: #374151 !important;
+}
+
+html.light .text-white,
+html.light .text-stone-100 {
+  color: #111827 !important;
+}
+
+html.light .text-zinc-600,
+html.light .text-zinc-700 {
+  color: #4b5563 !important;
+}
+
+/* Form and Dropdown Overrides */
+html.light input,
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  color: #111827 !important;
+  border-color: #d1d5db !important;
+}
+
+html.light .esports-card {
+  background: #ffffff !important;
+  border: 1px solid rgba(255, 0, 31, 0.15) !important;
+  color: #111827 !important;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03) !important;
+}
+
+html.light .esports-card:hover {
+  box-shadow: 0 10px 25px rgba(255, 0, 31, 0.15) !important;
+}
+
+html.light .custom-scrollbar::-webkit-scrollbar-track {
+  background: #f3f4f6 !important;
+}
+
+html.light .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #ff001f !important;
+}
+
+/* Side comparison panel and dialog cards override */
+html.light .bg-\[\#090a0d\] {
+  background-color: #ffffff !important;
+  border-color: #e5e7eb !important;
+}
+
+html.light .bg-\[\#0e1014\]\/50 {
+  background-color: #f9fafb !important;
+}
+
+html.light .bg-\[\#0d0f14\] {
+  background-color: #f3f4f6 !important;
+}
+
+html.light .text-zinc-250 {
+  color: #1f2937 !important;
+}
+
+

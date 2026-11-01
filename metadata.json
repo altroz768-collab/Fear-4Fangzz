@@ -1,0 +1,6 @@
+{
+  "name": "Fear 4Fangz",
+  "description": "An all-in-one competitive eSports ecosystem featuring AI-powered analysis, tactical team maps, scrim managers, tournament control centers, live matches, personal ranks, Fear Coins economy, and full roster directories.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

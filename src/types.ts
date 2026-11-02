@@ -18,6 +18,10 @@ export interface UserSession {
   battlePassXp: number;
   battlePassLevel: number;
   verified: boolean;
+  customTitle?: string;
+  authToken?: string;
+  email?: string;
+  isLoggedIn?: boolean;
 }
 
 export interface Tournament {
@@ -167,6 +171,7 @@ export interface WorldChatMessage {
   senderVerified: boolean;
   senderLevel: number;
   senderReputation: number;
+  senderCustomTitle?: string;
   text: string;
   timestamp: string;
   imageUrl?: string;

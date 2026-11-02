@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0a0507" />
+      <stop offset="50%" stop-color="#180b0e" />
+      <stop offset="100%" stop-color="#050203" />
+    </linearGradient>
+    <linearGradient id="crimsonNeon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff2a44" />
+      <stop offset="50%" stop-color="#ff001c" />
+      <stop offset="100%" stop-color="#99000f" />
+    </linearGradient>
+    <linearGradient id="goldAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffd700" />
+      <stop offset="100%" stop-color="#ff8c00" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="2.5" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Hex Shield Chassis -->
+  <polygon points="50,4 92,20 92,62 50,96 8,62 8,20" fill="url(#bgGrad)" stroke="#ff001c" stroke-width="3.5" filter="url(#glow)" />
+  <polygon points="50,11 85,25 85,58 50,87 15,58 15,25" fill="none" stroke="#ff2a44" stroke-width="1.2" opacity="0.4" />
+
+  <!-- The 4 Stylized Fangs Motif (Fear 4Fangz) -->
+  <!-- Outer Left Fang -->
+  <path d="M 26,30 L 33,30 L 29,56 Z" fill="url(#crimsonNeon)" />
+  <!-- Inner Left Fang (Primary) -->
+  <path d="M 37,28 L 47,28 L 41,74 Z" fill="url(#crimsonNeon)" filter="url(#glow)" />
+  <!-- Inner Right Fang (Primary) -->
+  <path d="M 53,28 L 63,28 L 59,74 Z" fill="url(#crimsonNeon)" filter="url(#glow)" />
+  <!-- Outer Right Fang -->
+  <path d="M 67,30 L 74,30 L 71,56 Z" fill="url(#crimsonNeon)" />
+
+  <!-- Center Crown / Crossbar V Accent -->
+  <polygon points="50,22 43,30 57,30" fill="url(#goldAccent)" />
+  <polygon points="50,78 44,70 56,70" fill="url(#goldAccent)" opacity="0.8" />
+</svg>

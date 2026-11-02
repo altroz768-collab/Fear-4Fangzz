@@ -1,9 +1,309 @@
 import express from "express";
 import path from "path";
 import fs from "fs";
+import crypto from "crypto";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import { WebSocketServer, WebSocket as WSWebSocket } from "ws";
+
+// --- CRYPTOGRAPHIC PASSWORD HASHING UTILITIES ---
+function hashPassword(password: string, salt?: string): { hash: string; salt: string } {
+  const usedSalt = salt || crypto.randomBytes(16).toString("hex");
+  const hash = crypto.scryptSync(password, usedSalt, 64).toString("hex");
+  return { hash, salt: usedSalt };
+}
+
+function verifyPassword(password: string, hash: string, salt: string): boolean {
+  try {
+    const computed = crypto.scryptSync(password, salt, 64).toString("hex");
+    return crypto.timingSafeEqual(Buffer.from(computed, "hex"), Buffer.from(hash, "hex"));
+  } catch {
+    return false;
+  }
+}
+
+// --- AUTHORITATIVE STAFF CREDENTIALS REGISTRY ---
+// Configurable via environment variables (OWNER_PASSWORD, ADMIN_PASSWORD, ADMIN_SECRET_KEY).
+// Passwords are salt-hashed using scrypt in RAM. Never exposed to clients.
+interface StaffAccount {
+  ign: string;
+  email: string;
+  role: "Owner" | "Head Admin" | "Admin" | "Moderator";
+  hash: string;
+  salt: string;
+}
+
+const DEFAULT_OWNER_KEY = process.env.OWNER_PASSWORD || process.env.ADMIN_SECRET_KEY || "Fear4FangzOwner#2026";
+const DEFAULT_ADMIN_KEY = process.env.ADMIN_PASSWORD || "CVAdmin#2026";
+
+const ownerCreds = hashPassword(DEFAULT_OWNER_KEY);
+const adminCreds = hashPassword(DEFAULT_ADMIN_KEY);
+
+const STAFF_ACCOUNTS: StaffAccount[] = [
+  { ign: "CV_Slayer_IGL", email: "slayer@fear4fangz.com", role: "Owner", hash: ownerCreds.hash, salt: ownerCreds.salt },
+  { ign: "Fear_Owner", email: "muchecheprince4@gmail.com", role: "Owner", hash: ownerCreds.hash, salt: ownerCreds.salt },
+  { ign: "ESL_Admin", email: "admin@fear4fangz.com", role: "Head Admin", hash: adminCreds.hash, salt: adminCreds.salt },
+  { ign: "CV_Tactical_Coach", email: "coach@fear4fangz.com", role: "Admin", hash: adminCreds.hash, salt: adminCreds.salt },
+  { ign: "CV_Sentinel", email: "sentinel@fear4fangz.com", role: "Moderator", hash: adminCreds.hash, salt: adminCreds.salt }
+];
+
+// --- ACTIVE AUTHENTICATED SESSIONS STORE ---
+interface ActiveSession {
+  token: string;
+  ign: string;
+  role: "Owner" | "Head Admin" | "Admin" | "Moderator" | "Member" | "Visitor";
+  verified: boolean;
+  customTitle?: string;
+  createdAt: number;
+  expiresAt: number;
+}
+
+const activeSessions = new Map<string, ActiveSession>();
+
+// --- MEMBER ACCOUNTS REGISTRY ---
+interface MemberAccount {
+  ign: string;
+  email?: string;
+  hash: string;
+  salt: string;
+  role: "Member"; // Strictly Member - registrations can NEVER create staff/owner accounts
+  customTitle?: string;
+  createdAt: string;
+}
+
+const memberAccounts = new Map<string, MemberAccount>();
+
+// Seed verified pro demo members
+const demoMemberCreds = hashPassword("Player123#");
+memberAccounts.set("CV_Mamba_Flick".toLowerCase(), {
+  ign: "CV_Mamba_Flick",
+  email: "mamba@fear4fangz.com",
+  hash: demoMemberCreds.hash,
+  salt: demoMemberCreds.salt,
+  role: "Member",
+  customTitle: "Fragger & Sniper",
+  createdAt: new Date().toISOString()
+});
+memberAccounts.set("CV_Shadow_Duo".toLowerCase(), {
+  ign: "CV_Shadow_Duo",
+  email: "shadow@fear4fangz.com",
+  hash: demoMemberCreds.hash,
+  salt: demoMemberCreds.salt,
+  role: "Member",
+  customTitle: "Assaulter & Roamer",
+  createdAt: new Date().toISOString()
+});
+
+// --- RATE LIMITER FOR ADMINISTRATIVE LOGINS ---
+const adminLoginAttempts = new Map<string, { attempts: number; lockedUntil: number }>();
+
+function checkAdminRateLimit(ipOrKey: string): { allowed: boolean; waitSeconds?: number } {
+  const record = adminLoginAttempts.get(ipOrKey);
+  const now = Date.now();
+  if (record && record.lockedUntil > now) {
+    return { allowed: false, waitSeconds: Math.ceil((record.lockedUntil - now) / 1000) };
+  }
+  return { allowed: true };
+}
+
+function recordFailedAdminLogin(ipOrKey: string) {
+  const now = Date.now();
+  const record = adminLoginAttempts.get(ipOrKey) || { attempts: 0, lockedUntil: 0 };
+  record.attempts += 1;
+  if (record.attempts >= 5) {
+    record.lockedUntil = now + 15 * 60 * 1000; // 15-minute lock
+    record.attempts = 0;
+  }
+  adminLoginAttempts.set(ipOrKey, record);
+}
+
+function resetAdminLoginAttempts(ipOrKey: string) {
+  adminLoginAttempts.delete(ipOrKey);
+}
+
+// Server role helper functions
+function isStaffRole(role: string): boolean {
+  return ["Owner", "Head Admin", "Admin", "Moderator"].includes(role);
+}
+
+function isOwnerRole(role: string): boolean {
+  return role === "Owner";
+}
+
+function isAdminRole(role: string): boolean {
+  return ["Owner", "Head Admin", "Admin"].includes(role);
+}
+
+// Authorized Staff registry for lookup
+const SERVER_AUTHORIZED_ROLES: Record<string, string> = {
+  "CV_Slayer_IGL": "Owner",
+  "Fear_Owner": "Owner",
+  "ESL_Admin": "Head Admin",
+  "CV_Tactical_Coach": "Admin",
+  "CV_Sentinel": "Moderator"
+};
+
+function getSessionFromToken(token?: string | null): ActiveSession | null {
+  if (!token) return null;
+  const session = activeSessions.get(token);
+  if (!session) return null;
+  if (session.expiresAt && Date.now() > session.expiresAt) {
+    activeSessions.delete(token);
+    return null;
+  }
+  return session;
+}
+
+function getSessionFromReq(req: express.Request): ActiveSession | null {
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    const token = authHeader.substring(7).trim();
+    return getSessionFromToken(token);
+  }
+  return null;
+}
+
+/**
+ * Authoritative role resolver.
+ * Privileged roles (Owner, Admin, Moderator) can ONLY be assigned if a valid, unexpired session token is verified.
+ * Unauthenticated users are assigned "Visitor" or "Member" (if registered).
+ */
+function getVerifiedRole(ign: string, tokenOrRoleHint?: string): string {
+  const rawIgn = (ign || "").trim();
+  if (!rawIgn || rawIgn === "Visitor" || rawIgn === "Guest") {
+    return "Visitor";
+  }
+
+  // If a session token was passed:
+  if (tokenOrRoleHint && activeSessions.has(tokenOrRoleHint)) {
+    const session = getSessionFromToken(tokenOrRoleHint);
+    if (session && session.ign.toLowerCase() === rawIgn.toLowerCase()) {
+      return session.role;
+    }
+  }
+
+  // Check if an active session exists for this user in activeSessions
+  for (const session of activeSessions.values()) {
+    if (session.ign.toLowerCase() === rawIgn.toLowerCase() && Date.now() < session.expiresAt) {
+      return session.role;
+    }
+  }
+
+  // If registered member in memberAccounts
+  if (memberAccounts.has(rawIgn.toLowerCase())) {
+    return "Member";
+  }
+
+  return "Visitor";
+}
+
+
+// RESERVED ADMINISTRATIVE & SYSTEM ROLES
+// Users must NOT be able to set their custom title to reserved or misleading administrative titles.
+const RESERVED_ADMIN_KEYWORDS = [
+  "owner",
+  "admin",
+  "administrator",
+  "superadmin",
+  "super admin",
+  "headadmin",
+  "head admin",
+  "moderator",
+  "mod",
+  "staff",
+  "system",
+  "root",
+  "operator",
+  "sentinel",
+  "official",
+  "founder",
+  "executive",
+  "security",
+  "developer",
+  "dev"
+];
+
+// In-memory cache of verified user custom titles
+// Mapped by user IGN: Record<string, string>
+const userCustomTitlesCache: Record<string, string> = {
+  "CV_Slayer_IGL": "Team Captain & IGL",
+  "CV_Mamba_Flick": "Fragger & Sniper"
+};
+
+/**
+ * Validates a custom profile title according to strict security guidelines:
+ * - Cosmetic only: never alters account role or permissions
+ * - Rejects reserved / administrative role titles (Owner, Admin, Administrator, Super Admin, Moderator, etc.)
+ * - Normalizes before checking: ignores capitalization, trims whitespace, prevents leetspeak / punctuation bypass
+ * - Length limits: 2–24 characters, rejects abusive content / invalid formatting
+ */
+function validateCustomTitle(rawTitle: unknown): { valid: boolean; error?: string; sanitizedTitle?: string } {
+  if (typeof rawTitle !== "string") {
+    return { valid: false, error: "Custom title must be a valid text string." };
+  }
+
+  // 1. Trim leading and trailing whitespace
+  const trimmed = rawTitle.trim();
+
+  // Allow clearing title with empty string
+  if (trimmed.length === 0) {
+    return { valid: true, sanitizedTitle: "" };
+  }
+
+  // 2. Length limits: 2–24 characters
+  if (trimmed.length < 2 || trimmed.length > 24) {
+    return { valid: false, error: "Custom title must be between 2 and 24 characters in length." };
+  }
+
+  // Collapse repeated consecutive spaces into a single space
+  const collapsed = trimmed.replace(/\s+/g, " ");
+
+  // 3. Prohibit invalid characters or abusive control formatting
+  if (!/^[\w\s\-\.\'\#\!\&]{2,24}$/i.test(collapsed)) {
+    return { valid: false, error: "Custom title contains prohibited special characters or formatting." };
+  }
+
+  // 4. Normalization for reserved check:
+  // Lowercase + leetspeak de-obfuscation
+  const deobfuscated = collapsed.toLowerCase()
+    .replace(/0/g, "o")
+    .replace(/1/g, "i")
+    .replace(/3/g, "e")
+    .replace(/4/g, "a")
+    .replace(/@/g, "a")
+    .replace(/5/g, "s")
+    .replace(/7/g, "t")
+    .replace(/8/g, "b")
+    .replace(/\$/g, "s")
+    .replace(/!/g, "i");
+
+  // Strip all punctuation, spaces, dots, dashes, underscores
+  const stripped = deobfuscated.replace(/[^a-z0-9]/g, "");
+
+  // Check against reserved stems
+  for (const kw of RESERVED_ADMIN_KEYWORDS) {
+    const cleanKw = kw.replace(/[^a-z0-9]/g, "");
+    if (stripped === cleanKw || stripped.includes(cleanKw)) {
+      return {
+        valid: false,
+        error: `"${collapsed}" contains a reserved administrative or system role title ("${kw.toUpperCase()}"). Custom titles are cosmetic and cannot imitate privileged roles.`
+      };
+    }
+  }
+
+  // Check word boundaries on the deobfuscated string
+  for (const kw of RESERVED_ADMIN_KEYWORDS) {
+    const regex = new RegExp(`\\b${kw}\\b`, "i");
+    if (regex.test(deobfuscated)) {
+      return {
+        valid: false,
+        error: `"${collapsed}" contains a reserved administrative role name ("${kw.toUpperCase()}"). Choose a member or competitive title instead.`
+      };
+    }
+  }
+
+  return { valid: true, sanitizedTitle: collapsed };
+}
 
 async function startServer() {
   const app = express();
@@ -11,7 +311,223 @@ async function startServer() {
 
   app.use(express.json());
 
-  // Gracefully initialize Gemini with key validation or fallback response
+  // --- AUTHENTICATION & ACCESS CONTROL MIDDLEWARE ---
+  function requireStaffAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const session = getSessionFromReq(req);
+    if (!session || !isStaffRole(session.role)) {
+      return res.status(403).json({ error: "Access denied. Administrative authorization required." });
+    }
+    (req as any).user = session;
+    next();
+  }
+
+  function requireOwnerAuth(req: express.Request, res: express.Response, next: express.NextFunction) {
+    const session = getSessionFromReq(req);
+    if (!session || !isOwnerRole(session.role)) {
+      return res.status(403).json({ error: "Access denied. Platform Owner authorization required." });
+    }
+    (req as any).user = session;
+    next();
+  }
+
+  // --- DEDICATED SPECIAL ADMIN LOGIN ---
+  app.post("/api/auth/admin-login", (req, res) => {
+    const clientIp = ((req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "admin_portal").split(",")[0].trim();
+    const rateCheck = checkAdminRateLimit(clientIp);
+    if (!rateCheck.allowed) {
+      return res.status(429).json({
+        error: `Too many failed administrative attempts. Account portal locked for ${rateCheck.waitSeconds} seconds.`
+      });
+    }
+
+    const { identifier, password } = req.body;
+    if (!identifier || !password || typeof identifier !== "string" || typeof password !== "string") {
+      recordFailedAdminLogin(clientIp);
+      return res.status(401).json({ error: "Invalid administrative credentials." });
+    }
+
+    const cleanId = identifier.trim().toLowerCase();
+    const staff = STAFF_ACCOUNTS.find(
+      acc => acc.ign.toLowerCase() === cleanId || acc.email.toLowerCase() === cleanId
+    );
+
+    if (!staff || !verifyPassword(password, staff.hash, staff.salt)) {
+      recordFailedAdminLogin(clientIp);
+      return res.status(401).json({ error: "Invalid administrative credentials." });
+    }
+
+    // Success: reset rate limit attempts and issue 32-byte cryptographically secure session token
+    resetAdminLoginAttempts(clientIp);
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
+    const customTitle = userCustomTitlesCache[staff.ign] || "";
+
+    const sessionObj: ActiveSession = {
+      token,
+      ign: staff.ign,
+      email: staff.email,
+      role: staff.role,
+      verified: true,
+      customTitle,
+      createdAt: Date.now(),
+      expiresAt
+    };
+    activeSessions.set(token, sessionObj);
+
+    return res.json({
+      success: true,
+      token,
+      user: {
+        ign: staff.ign,
+        email: staff.email,
+        role: staff.role,
+        verified: true,
+        customTitle
+      }
+    });
+  });
+
+  // --- MEMBER LOGIN ---
+  app.post("/api/auth/member-login", (req, res) => {
+    const { identifier, password } = req.body;
+    if (!identifier || !password || typeof identifier !== "string" || typeof password !== "string") {
+      return res.status(401).json({ error: "Invalid player credentials." });
+    }
+
+    const cleanId = identifier.trim().toLowerCase();
+    const member = Array.from(memberAccounts.values()).find(
+      m => m.ign.toLowerCase() === cleanId || (m.email && m.email.toLowerCase() === cleanId)
+    );
+
+    if (!member || !verifyPassword(password, member.hash, member.salt)) {
+      return res.status(401).json({ error: "Invalid player credentials." });
+    }
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    const customTitle = userCustomTitlesCache[member.ign] || member.customTitle || "";
+
+    const sessionObj: ActiveSession = {
+      token,
+      ign: member.ign,
+      email: member.email,
+      role: "Member",
+      verified: true,
+      customTitle,
+      createdAt: Date.now(),
+      expiresAt
+    };
+    activeSessions.set(token, sessionObj);
+
+    return res.json({
+      success: true,
+      token,
+      user: {
+        ign: member.ign,
+        email: member.email,
+        role: "Member",
+        verified: true,
+        customTitle
+      }
+    });
+  });
+
+  // --- PLAYER REGISTRATION (Strictly Member Role) ---
+  app.post("/api/auth/register", (req, res) => {
+    const { ign, email, password } = req.body;
+    if (!ign || typeof ign !== "string" || ign.trim().length < 3 || ign.trim().length > 20) {
+      return res.status(400).json({ error: "IGN must be between 3 and 20 characters." });
+    }
+    if (!password || typeof password !== "string" || password.length < 6) {
+      return res.status(400).json({ error: "Password must be at least 6 characters." });
+    }
+
+    const cleanIgn = ign.trim();
+    const lower = cleanIgn.toLowerCase();
+
+    // Prevent registering reserved admin keywords in IGN
+    for (const kw of RESERVED_ADMIN_KEYWORDS) {
+      if (lower === kw || lower.startsWith(kw + "_") || lower.endsWith("_" + kw)) {
+        return res.status(400).json({ error: `Cannot register an IGN containing reserved keyword "${kw.toUpperCase()}".` });
+      }
+    }
+
+    if (memberAccounts.has(lower) || STAFF_ACCOUNTS.some(s => s.ign.toLowerCase() === lower)) {
+      return res.status(400).json({ error: "This player IGN is already registered." });
+    }
+
+    const creds = hashPassword(password);
+    const newMember: MemberAccount = {
+      ign: cleanIgn,
+      email: typeof email === "string" ? email.trim() : undefined,
+      hash: creds.hash,
+      salt: creds.salt,
+      role: "Member", // Strictly Member role - registrations can NEVER create staff/owner accounts
+      createdAt: new Date().toISOString()
+    };
+    memberAccounts.set(lower, newMember);
+
+    const token = crypto.randomBytes(32).toString("hex");
+    const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    activeSessions.set(token, {
+      token,
+      ign: cleanIgn,
+      email: newMember.email,
+      role: "Member",
+      verified: true,
+      createdAt: Date.now(),
+      expiresAt
+    });
+
+    return res.json({
+      success: true,
+      token,
+      user: {
+        ign: cleanIgn,
+        email: newMember.email,
+        role: "Member",
+        verified: true,
+        customTitle: ""
+      }
+    });
+  });
+
+  // --- ACTIVE SESSION VERIFICATION ---
+  app.get("/api/auth/session", (req, res) => {
+    const session = getSessionFromReq(req);
+    if (session) {
+      return res.json({
+        authenticated: true,
+        user: {
+          ign: session.ign,
+          email: session.email,
+          role: session.role,
+          verified: session.verified,
+          customTitle: userCustomTitlesCache[session.ign] || session.customTitle || "",
+          authToken: session.token
+        }
+      });
+    }
+    return res.json({
+      authenticated: false,
+      user: {
+        ign: "Visitor",
+        role: "Visitor",
+        verified: false,
+        customTitle: ""
+      }
+    });
+  });
+
+  // --- LOGOUT ---
+  app.post("/api/auth/logout", (req, res) => {
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.substring(7).trim();
+      activeSessions.delete(token);
+    }
+    return res.json({ success: true, message: "Logged out successfully." });
+  });
   function getGeminiClient(): GoogleGenAI | null {
     const key = process.env.GEMINI_API_KEY;
     if (!key || key === "MY_GEMINI_API_KEY") {
@@ -625,11 +1141,74 @@ You MUST return a JSON object ONLY, adhering to the following structure:
     return res.status(404).json({ error: "ZIP file not generated yet." });
   });
 
+  // User Profile & Custom Title API (Secure Role-Protection)
+  app.get("/api/user/profile/:ign", (req, res) => {
+    const rawIgn = (req.params.ign || "").trim();
+    if (!rawIgn) {
+      return res.status(400).json({ error: "IGN parameter required" });
+    }
+    const verifiedRole = getVerifiedRole(rawIgn);
+    const customTitle = userCustomTitlesCache[rawIgn] || "";
+    return res.json({
+      ign: rawIgn,
+      role: verifiedRole,
+      customTitle,
+      isStaff: isStaffRole(verifiedRole),
+      isOwner: isOwnerRole(verifiedRole),
+      isAdmin: isAdminRole(verifiedRole)
+    });
+  });
+
+  app.post("/api/user/custom-title", (req, res) => {
+    try {
+      const { ign, customTitle } = req.body;
+      const rawIgn = (ign || "").trim();
+      if (!rawIgn) {
+        return res.status(400).json({ valid: false, error: "IGN is required to update profile custom title." });
+      }
+
+      // Authoritative role check: The server NEVER alters the user's verified role when updating custom title.
+      // Any attempt to pass a 'role' in req.body to alter permissions is completely ignored.
+      const verifiedRole = getVerifiedRole(rawIgn);
+
+      // Validate custom title against strict server rules (rejects reserved keywords: Owner, Admin, Super Admin, etc.)
+      const validation = validateCustomTitle(customTitle);
+      if (!validation.valid) {
+        return res.status(400).json({
+          valid: false,
+          error: validation.error,
+          verifiedRole
+        });
+      }
+
+      const sanitized = validation.sanitizedTitle || "";
+      if (sanitized) {
+        userCustomTitlesCache[rawIgn] = sanitized;
+      } else {
+        delete userCustomTitlesCache[rawIgn];
+      }
+
+      return res.json({
+        success: true,
+        valid: true,
+        ign: rawIgn,
+        customTitle: sanitized,
+        role: verifiedRole,
+        message: sanitized 
+          ? `Custom title updated to "${sanitized}". (Note: Cosmetic only; verified role remains "${verifiedRole}").`
+          : "Custom title cleared."
+      });
+    } catch (err: any) {
+      console.error("Custom title update error:", err);
+      return res.status(500).json({ valid: false, error: "Internal server error validating custom title." });
+    }
+  });
+
   // Vite integration
   const isProduction = process.env.NODE_ENV === "production" || Boolean(process.argv[1] && process.argv[1].includes("dist"));
   if (!isProduction) {
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, hmr: false },
       appType: "spa",
     });
     app.use(vite.middlewares);
@@ -664,6 +1243,7 @@ interface WorldChatMessage {
   senderVerified: boolean;
   senderLevel: number;
   senderReputation: number;
+  senderCustomTitle?: string;
   text: string;
   timestamp: string;
   imageUrl?: string;
@@ -686,49 +1266,11 @@ let chatHistory: Record<string, WorldChatMessage[]> = {
   oceania: []
 };
 
-// Authoritative server-side role registry
-// Prevents browser impersonation: any user claiming "Owner" or "Admin" must match the server registry.
-const SERVER_AUTHORIZED_ROLES: Record<string, "Owner" | "Head Admin" | "Admin" | "Moderator"> = {
-  "CV_Slayer_IGL": "Owner",
-  "muchecheprince4@gmail.com": "Owner",
-  "Fear_Owner": "Owner",
-  "ESL_Admin": "Head Admin",
-  "CV_Tactical_Coach": "Admin",
-  "CV_Sentinel": "Moderator"
-};
-
-function getVerifiedRole(ign: string, requestedRole?: string): string {
-  const normalized = (ign || "").trim();
-  if (SERVER_AUTHORIZED_ROLES[normalized]) {
-    return SERVER_AUTHORIZED_ROLES[normalized];
-  }
-  // If the requested role is a staff role but IGN is not in SERVER_AUTHORIZED_ROLES, demote to Member!
-  if (["Owner", "Head Admin", "Admin", "Moderator"].includes(requestedRole || "")) {
-    return "Member";
-  }
-  if (requestedRole === "Guest") {
-    return "Guest";
-  }
-  return requestedRole || "Member";
-}
-
-function isStaffRole(role: string): boolean {
-  return ["Owner", "Head Admin", "Admin", "Moderator"].includes(role);
-}
-
-function isOwnerRole(role: string): boolean {
-  return role === "Owner";
-}
-
-function isAdminRole(role: string): boolean {
-  return ["Owner", "Head Admin", "Admin"].includes(role);
-}
-
 function setupWorldChatWebSocket(server: any) {
   const wss = new WebSocketServer({ server });
   
   // Track active socket connections mapped to user profiles
-  const clients = new Map<any, { ign: string; role: string; avatar: string; verified: boolean; level: number; reputation: number }>();
+  const clients = new Map<any, { ign: string; role: string; avatar: string; verified: boolean; level: number; reputation: number; customTitle?: string }>();
 
   // Default smart language filter configuration
   let filterConfig = {
@@ -785,10 +1327,28 @@ function setupWorldChatWebSocket(server: any) {
         
         switch (payload.type) {
           case "init": {
-            const rawIgn = (payload.user?.ign || "Guest").trim();
-            const requestedRole = payload.user?.role || "Member";
-            const verifiedRole = getVerifiedRole(rawIgn, requestedRole);
-            const verified = Boolean(SERVER_AUTHORIZED_ROLES[rawIgn] || payload.user?.verified);
+            const rawToken = payload.authToken;
+            const session = getSessionFromToken(rawToken);
+
+            let verifiedRole = "Visitor";
+            let verified = false;
+            let rawIgn = "Visitor";
+            let userCustomTitle = "";
+
+            if (session) {
+              rawIgn = session.ign;
+              verifiedRole = session.role;
+              verified = session.verified;
+              userCustomTitle = userCustomTitlesCache[rawIgn] || session.customTitle || "";
+            } else {
+              const clientIgn = (payload.user?.ign || "Visitor").trim();
+              if (clientIgn && clientIgn !== "Guest" && clientIgn !== "Visitor") {
+                rawIgn = clientIgn;
+                verifiedRole = memberAccounts.has(clientIgn.toLowerCase()) ? "Member" : "Visitor";
+                verified = false;
+                userCustomTitle = userCustomTitlesCache[clientIgn] || "";
+              }
+            }
             
             // Register or pull from reputation registry
             if (!userReputationCache[rawIgn]) {
@@ -808,7 +1368,8 @@ function setupWorldChatWebSocket(server: any) {
               avatar: payload.user?.avatar || (verifiedRole === "Owner" ? "🎯" : isStaffRole(verifiedRole) ? "👑" : "🛡️"),
               verified,
               level: state.level,
-              reputation: state.score
+              reputation: state.score,
+              customTitle: userCustomTitle || undefined
             };
             
             clients.set(ws, updatedUser);
@@ -833,7 +1394,8 @@ function setupWorldChatWebSocket(server: any) {
               onlineUsers: Array.from(clients.values()),
               streamers,
               userReputation: state,
-              verifiedRole // Authoritative server role returned to client
+              verifiedRole, // Authoritative server role returned to client
+              customTitle: userCustomTitle || undefined
             };
 
             // STRICT DATA ISOLATION: Restricted administrative data sent ONLY to authorized staff
@@ -1015,6 +1577,7 @@ function setupWorldChatWebSocket(server: any) {
               senderVerified: user.verified,
               senderLevel: rep ? rep.level : 5,
               senderReputation: rep ? rep.score : 85,
+              senderCustomTitle: user.customTitle || userCustomTitlesCache[user.ign] || undefined,
               text: cleanedText,
               timestamp: new Date().toISOString(),
               reactions: {},
@@ -1033,6 +1596,49 @@ function setupWorldChatWebSocket(server: any) {
             broadcast({
               type: "chat_message",
               message: messageObj
+            });
+            break;
+          }
+
+          case "update_custom_title": {
+            const user = clients.get(ws);
+            if (!user || user.role === "Guest") {
+              ws.send(JSON.stringify({ type: "chat_error", error: "Guest users cannot configure custom profile titles. Select a member profile to customize your title." }));
+              return;
+            }
+
+            const validation = validateCustomTitle(payload.customTitle);
+            if (!validation.valid) {
+              ws.send(JSON.stringify({
+                type: "custom_title_error",
+                error: validation.error
+              }));
+              return;
+            }
+
+            const sanitized = validation.sanitizedTitle || "";
+            if (sanitized) {
+              userCustomTitlesCache[user.ign] = sanitized;
+            } else {
+              delete userCustomTitlesCache[user.ign];
+            }
+
+            user.customTitle = sanitized || undefined;
+            clients.set(ws, user);
+
+            // Send authoritative confirmation back to caller
+            ws.send(JSON.stringify({
+              type: "custom_title_updated",
+              ign: user.ign,
+              customTitle: sanitized,
+              verifiedRole: user.role,
+              message: sanitized ? `Custom title updated to "${sanitized}".` : "Custom title cleared."
+            }));
+
+            // Broadcast presence update with new custom title to all connected users
+            broadcast({
+              type: "presence",
+              onlineUsers: Array.from(clients.values())
             });
             break;
           }

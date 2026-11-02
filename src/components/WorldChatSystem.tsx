@@ -86,6 +86,10 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
 
   // Profile Card Overlay State
   const [selectedProfileCard, setSelectedProfileCard] = useState<any | null>(null);
+  const [editingCustomTitle, setEditingCustomTitle] = useState(false);
+  const [customTitleInput, setCustomTitleInput] = useState("");
+  const [customTitleError, setCustomTitleError] = useState("");
+  const [isSavingTitle, setIsSavingTitle] = useState(false);
 
   const listEndRef = useRef<HTMLDivElement>(null);
   const chatMessagesContainerRef = useRef<HTMLDivElement>(null);
@@ -273,6 +277,28 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
 
           case "system_notify": {
             setSystemAlertMessage(payload.message);
+            break;
+          }
+
+          case "custom_title_updated": {
+            if (payload.ign === session.ign) {
+              session.customTitle = payload.customTitle;
+            }
+            setSelectedProfileCard((prev: any) => {
+              if (prev && prev.ign === payload.ign) {
+                return { ...prev, customTitle: payload.customTitle };
+              }
+              return prev;
+            });
+            setEditingCustomTitle(false);
+            setCustomTitleError("");
+            setSystemAlertMessage(payload.message || `✨ Custom title updated to "${payload.customTitle}".`);
+            break;
+          }
+
+          case "custom_title_error": {
+            setCustomTitleError(payload.error || "Title rejected by security policy.");
+            setSystemAlertMessage("🚫 Title Rejected: " + payload.error);
             break;
           }
 
@@ -693,14 +719,20 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
                       {/* SENDER INFO BANNER */}
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span 
-                          onClick={() => setSelectedProfileCard({
-                            ign: msg.senderIgn,
-                            role: msg.senderRole,
-                            avatar: msg.senderAvatar,
-                            verified: msg.senderVerified,
-                            level: msg.senderLevel,
-                            reputation: msg.senderReputation
-                          })}
+                          onClick={() => {
+                            setSelectedProfileCard({
+                              ign: msg.senderIgn,
+                              role: msg.senderRole,
+                              customTitle: msg.senderCustomTitle,
+                              avatar: msg.senderAvatar,
+                              verified: msg.senderVerified,
+                              level: msg.senderLevel,
+                              reputation: msg.senderReputation
+                            });
+                            setCustomTitleInput(msg.senderCustomTitle || "");
+                            setCustomTitleError("");
+                            setEditingCustomTitle(false);
+                          }}
                           className="text-xs font-black hover:text-red-400 cursor-pointer"
                         >
                           {msg.senderIgn}
@@ -709,6 +741,13 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
                         <span className={`px-1.5 py-0.5 text-[8px] tracking-wider rounded font-mono uppercase font-black ${badges}`}>
                           {msg.senderRole}
                         </span>
+
+                        {msg.senderCustomTitle && (
+                          <span className="px-1.5 py-0.5 text-[8px] tracking-wider rounded font-mono uppercase font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 flex items-center gap-1 shadow-sm" title="Cosmetic Custom Title (No Permissions)">
+                            <Sparkles size={8} className="text-amber-400 shrink-0" />
+                            <span>{msg.senderCustomTitle}</span>
+                          </span>
+                        )}
 
                         {msg.senderVerified && (
                           <span className="w-3.5 h-3.5 bg-sky-500/10 text-sky-400 border border-sky-500/30 text-[8px] rounded flex items-center justify-center font-bold" title="Verified Champion ID">
@@ -1248,22 +1287,183 @@ export default function WorldChatSystem({ session, setSystemAlertMessage }: Worl
               ✕
             </button>
             
-            <div className="flex flex-col items-center justify-center text-center space-y-3 pb-3 border-b border-gray-850/60">
+            <div className="flex flex-col items-center justify-center text-center space-y-2 pb-3 border-b border-gray-850/60">
               <div className="w-16 h-16 bg-neutral-900 border-2 border-red-500/30 rounded-2xl flex items-center justify-center text-4xl select-none">
                 {selectedProfileCard.avatar || "👤"}
               </div>
-              <div>
+              <div className="space-y-1.5">
                 <div className="flex items-center justify-center gap-2">
-                  <h3 className="text-sm font-black tracking-wider uppercase">{selectedProfileCard.ign}</h3>
+                  <h3 className="text-sm font-black tracking-wider uppercase font-mono">{selectedProfileCard.ign}</h3>
                   {selectedProfileCard.verified && (
                     <span className="px-1 py-0.5 bg-sky-500/10 border border-sky-400/30 text-sky-400 text-[8px] rounded uppercase font-bold">
-                      VERIFIED CHAMPION
+                      VERIFIED
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-zinc-400 mt-1">{selectedProfileCard.role}</p>
+
+                {/* ROLE VS CUSTOM TITLE: Distinct visual separation */}
+                <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                  <span className="px-2 py-0.5 bg-red-950/40 border border-red-500/30 text-red-400 text-[9px] font-mono uppercase font-black rounded" title="Verified System Role">
+                    ROLE: {selectedProfileCard.role}
+                  </span>
+                  {selectedProfileCard.customTitle ? (
+                    <span className="px-2 py-0.5 bg-amber-500/10 border border-amber-500/30 text-amber-400 text-[9px] font-mono uppercase font-bold rounded flex items-center gap-1" title="Cosmetic Title (No elevated permissions)">
+                      <Sparkles size={9} className="text-amber-400" />
+                      {selectedProfileCard.customTitle}
+                    </span>
+                  ) : (
+                    <span className="text-[9px] text-zinc-500 font-mono italic">No custom title</span>
+                  )}
+                </div>
               </div>
             </div>
+
+            {/* IF VIEWING OWN PROFILE: INTERACTIVE CUSTOM TITLE EDITOR */}
+            {selectedProfileCard.ign === session.ign && (
+              <div className="p-3 bg-black/40 border border-zinc-800/80 rounded-xl space-y-2.5 text-left">
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-mono uppercase font-black text-amber-400 flex items-center gap-1.5">
+                    <Sparkles size={11} /> CUSTOM PROFILE TITLE
+                  </span>
+                  <span className="text-[8px] font-mono text-zinc-500 uppercase">COSMETIC LABEL</span>
+                </div>
+                
+                <p className="text-[10px] text-zinc-400 leading-snug">
+                  Personalize your public esports title (e.g. Pro Player, Sniper, Elite Gamer). Titles never grant permissions or alter account role. Reserved administrative titles are strictly protected.
+                </p>
+
+                {/* Quick Presets */}
+                <div className="space-y-1">
+                  <span className="text-[8.5px] font-mono text-zinc-500 uppercase font-bold block">Quick Presets:</span>
+                  <div className="flex flex-wrap gap-1">
+                    {[
+                      "Pro Player",
+                      "Esports Competitor",
+                      "Sniper",
+                      "Team Captain",
+                      "Tournament Champion",
+                      "Content Creator",
+                      "Elite Gamer"
+                    ].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => {
+                          setCustomTitleInput(preset);
+                          setCustomTitleError("");
+                        }}
+                        className={`px-2 py-0.5 text-[9px] font-mono rounded border transition-colors cursor-pointer ${
+                          customTitleInput === preset
+                            ? "bg-amber-500/20 border-amber-500 text-amber-300 font-bold"
+                            : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700"
+                        }`}
+                      >
+                        {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[9px] font-mono text-zinc-500">
+                    <span>EDIT TITLE</span>
+                    <span>{customTitleInput.length}/24 chars</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={customTitleInput}
+                    maxLength={24}
+                    onChange={(e) => {
+                      setCustomTitleInput(e.target.value);
+                      setCustomTitleError("");
+                    }}
+                    placeholder="e.g. Sniper, Pro Player, Elite Gamer"
+                    className="w-full bg-black border border-zinc-850 rounded p-2 text-xs font-mono text-zinc-200 outline-none focus:border-amber-500"
+                  />
+                </div>
+
+                {customTitleError && (
+                  <div className="p-2 bg-red-950/40 border border-red-500/40 rounded text-[10px] text-red-300 leading-snug font-sans">
+                    ⚠️ {customTitleError}
+                  </div>
+                )}
+
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    disabled={isSavingTitle}
+                    onClick={async () => {
+                      setIsSavingTitle(true);
+                      setCustomTitleError("");
+                      try {
+                        const res = await fetch("/api/user/custom-title", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ ign: session.ign, customTitle: customTitleInput })
+                        });
+                        const data = await res.json();
+                        if (!res.ok || !data.valid) {
+                          setCustomTitleError(data.error || "Failed to update custom title.");
+                          setSystemAlertMessage(`🚫 Title Rejected: ${data.error}`);
+                        } else {
+                          session.customTitle = data.customTitle;
+                          setSelectedProfileCard((prev: any) => prev ? { ...prev, customTitle: data.customTitle } : null);
+                          setSystemAlertMessage(`✨ ${data.message}`);
+                          if (socket && socket.readyState === WebSocket.OPEN) {
+                            socket.send(JSON.stringify({
+                              type: "update_custom_title",
+                              customTitle: data.customTitle
+                            }));
+                          }
+                        }
+                      } catch (err: any) {
+                        setCustomTitleError("Network error updating title.");
+                      } finally {
+                        setIsSavingTitle(false);
+                      }
+                    }}
+                    className="flex-1 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-mono text-[10px] uppercase font-bold rounded cursor-pointer transition-colors"
+                  >
+                    {isSavingTitle ? "Saving..." : "Save Title"}
+                  </button>
+                  {customTitleInput && (
+                    <button
+                      type="button"
+                      disabled={isSavingTitle}
+                      onClick={async () => {
+                        setCustomTitleInput("");
+                        setCustomTitleError("");
+                        setIsSavingTitle(true);
+                        try {
+                          const res = await fetch("/api/user/custom-title", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ ign: session.ign, customTitle: "" })
+                          });
+                          const data = await res.json();
+                          session.customTitle = "";
+                          setSelectedProfileCard((prev: any) => prev ? { ...prev, customTitle: "" } : null);
+                          setSystemAlertMessage("✨ Custom title cleared.");
+                          if (socket && socket.readyState === WebSocket.OPEN) {
+                            socket.send(JSON.stringify({
+                              type: "update_custom_title",
+                              customTitle: ""
+                            }));
+                          }
+                        } catch (e) {
+                          setCustomTitleError("Error clearing title.");
+                        } finally {
+                          setIsSavingTitle(false);
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-white font-mono text-[10px] uppercase rounded cursor-pointer"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-2 gap-3 text-xs font-mono">
               <div className="bg-black/35 border border-gray-850 p-2.5 rounded-xl space-y-1">

@@ -476,7 +476,8 @@ export default function App() {
     coins: 750,
     battlePassXp: 120,
     battlePassLevel: 3,
-    verified: true
+    verified: true,
+    customTitle: "Team Captain & IGL"
   });
 
   const [activeTab, setActiveTab ] = useState<string>(() => {
@@ -1151,6 +1152,27 @@ export default function App() {
   const [isTacticalModalOpen, setIsTacticalModalOpen] = useState<boolean>(false);
   const [tacticalPlayerIgn, setTacticalPlayerIgn] = useState<string>("");
   const [systemAlertMessage, setSystemAlertMessage] = useState<string>("");
+
+  // Custom Profile Title modal & management states
+  const [isCustomTitleModalOpen, setIsCustomTitleModalOpen] = useState<boolean>(false);
+  const [customTitleModalInput, setCustomTitleModalInput] = useState<string>("");
+  const [customTitleModalError, setCustomTitleModalError] = useState<string>("");
+  const [isSavingCustomTitleModal, setIsSavingCustomTitleModal] = useState<boolean>(false);
+
+  // Synchronize user custom title from backend registry
+  useEffect(() => {
+    fetch(`/api/user/profile/${encodeURIComponent(session.ign)}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.customTitle !== undefined) {
+          setSession(prev => ({
+            ...prev,
+            customTitle: data.customTitle || prev.customTitle
+          }));
+        }
+      })
+      .catch(() => {});
+  }, [session.ign]);
   
   // Custom Toast Notifications for specific events (e.g., dossier download)
   interface CVToast {
@@ -4653,8 +4675,33 @@ export default function App() {
                   <span className="text-xs font-bold text-gray-200 font-mono truncate group-hover:text-red-400 transition-colors">{session.ign}</span>
                   {session.verified && <span className="text-[#FF001C] text-[10px]" title="CV Verified Player">🛡️</span>}
                 </div>
-                <span className="text-[9px] text-[#FF001C] tracking-wider font-extrabold uppercase">{session.role}</span>
+                <div className="flex items-center gap-1.5 flex-wrap mt-0.5">
+                  <span className="text-[9px] text-[#FF001C] tracking-wider font-extrabold uppercase">{session.role}</span>
+                  {session.customTitle && (
+                    <span className="text-[8.5px] text-amber-400 font-mono font-bold flex items-center gap-0.5" title="Cosmetic Custom Title">
+                      ✨ {session.customTitle}
+                    </span>
+                  )}
+                </div>
               </div>
+            </button>
+
+            {/* CUSTOM TITLE QUICK ACTION BUTTON */}
+            <button
+              type="button"
+              onClick={() => {
+                setCustomTitleModalInput(session.customTitle || "");
+                setCustomTitleModalError("");
+                setIsCustomTitleModalOpen(true);
+              }}
+              className="w-full py-1 px-2.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/25 hover:border-amber-500/50 text-amber-400 rounded-lg text-[9px] font-mono font-bold uppercase flex items-center justify-between cursor-pointer transition-all"
+              title="Customize your public cosmetic title"
+            >
+              <span className="flex items-center gap-1 truncate">
+                <Sparkles size={10} className="text-amber-400 shrink-0" />
+                <span className="truncate">{session.customTitle ? `Title: ${session.customTitle}` : "Set Custom Title"}</span>
+              </span>
+              <span className="text-[8px] text-zinc-500 hover:text-amber-300 shrink-0 ml-1">EDIT ✎</span>
             </button>
 
             <div className="space-y-2 border-t border-gray-800/80 pt-3">
@@ -13621,6 +13668,214 @@ Generated: ${new Date().toLocaleString()} (Local Time)
             <X size={14} />
           </button>
         </motion.div>
+      )}
+
+      {/* 👑 CUSTOM PROFILE TITLE MODAL WITH SECURE ROLE PROTECTION */}
+      {isCustomTitleModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="relative max-w-lg w-full bg-[#111113] border-2 border-red-500/40 rounded-2xl overflow-hidden shadow-[0_0_50px_rgba(239,68,68,0.2)] flex flex-col font-sans text-left">
+            {/* Header */}
+            <div className="p-4 border-b border-zinc-800 bg-zinc-950/80 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles size={16} className="text-amber-400" />
+                <h3 className="text-xs font-black tracking-widest text-white uppercase font-mono">
+                  CUSTOM PROFILE TITLE SETTINGS
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCustomTitleModalOpen(false)}
+                className="text-gray-400 hover:text-white p-1 hover:bg-zinc-900 rounded-lg transition-colors cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 max-h-[75vh] overflow-y-auto scrollbar-thin text-xs">
+              {/* Security Banner: Separation of Role vs Cosmetic Title */}
+              <div className="p-3.5 bg-black/60 border border-zinc-800/80 rounded-xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono uppercase font-black text-zinc-400">AUTHORITATIVE CREDENTIALS</span>
+                  <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-emerald-950/40 border border-emerald-500/30 text-emerald-400">
+                    AUTHENTICATED
+                  </span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div className="bg-zinc-950 p-2.5 rounded-lg border border-zinc-850">
+                    <span className="text-[9px] text-zinc-500 font-mono block uppercase">VERIFIED ACCOUNT ROLE</span>
+                    <strong className="text-sm font-mono font-black text-[#FF001C] uppercase block mt-0.5">
+                      {session.role}
+                    </strong>
+                    <span className="text-[8px] text-zinc-500 block mt-0.5">Controlled by server security</span>
+                  </div>
+
+                  <div className="bg-zinc-950 p-2.5 rounded-lg border border-zinc-850">
+                    <span className="text-[9px] text-zinc-500 font-mono block uppercase">ACTIVE CUSTOM TITLE</span>
+                    <strong className="text-sm font-mono font-bold text-amber-400 block mt-0.5 truncate">
+                      {session.customTitle || "None Assigned"}
+                    </strong>
+                    <span className="text-[8px] text-zinc-500 block mt-0.5">Cosmetic display label</span>
+                  </div>
+                </div>
+
+                <p className="text-[10px] text-zinc-400 leading-relaxed font-sans pt-1">
+                  🛡️ <strong>Security Notice:</strong> Custom titles are purely cosmetic labels displayed on your public profile and global chat messages. They <em>never</em> grant administrative permissions, modify system privileges, or alter your account role.
+                </p>
+              </div>
+
+              {/* Title Input */}
+              <div className="space-y-1.5">
+                <div className="flex justify-between items-center text-[10px] font-mono text-zinc-400">
+                  <label htmlFor="custom-title-input" className="font-bold uppercase">ENTER DESIRED CUSTOM TITLE</label>
+                  <span>{customTitleModalInput.length}/24 chars (2-24)</span>
+                </div>
+                <input
+                  id="custom-title-input"
+                  type="text"
+                  maxLength={24}
+                  value={customTitleModalInput}
+                  onChange={(e) => {
+                    setCustomTitleModalInput(e.target.value);
+                    setCustomTitleModalError("");
+                  }}
+                  placeholder="e.g. Pro Player, Sniper, Elite Gamer..."
+                  className="w-full bg-black border border-zinc-850 rounded-lg p-2.5 text-xs font-mono text-white outline-none focus:border-amber-500"
+                />
+              </div>
+
+              {/* Quick Presets */}
+              <div className="space-y-1.5">
+                <span className="text-[9px] font-mono uppercase font-black text-zinc-400 block">
+                  RECOMMENDED COMPETITIVE PRESETS
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    "Pro Player",
+                    "Esports Competitor",
+                    "Sniper",
+                    "Team Captain",
+                    "Tournament Champion",
+                    "Content Creator",
+                    "Elite Gamer",
+                    "Clutch Specialist",
+                    "Tactical Anchor"
+                  ].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => {
+                        setCustomTitleModalInput(preset);
+                        setCustomTitleModalError("");
+                      }}
+                      className={`px-2.5 py-1 text-[9.5px] font-mono rounded-lg border transition-all cursor-pointer ${
+                        customTitleModalInput === preset
+                          ? "bg-amber-500/20 border-amber-500 text-amber-300 font-bold"
+                          : "bg-zinc-950 border-zinc-850 text-zinc-400 hover:text-white hover:border-zinc-700"
+                      }`}
+                    >
+                      {preset}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Error banner if rejected by server */}
+              {customTitleModalError && (
+                <div className="p-3 bg-red-950/40 border border-red-500/50 rounded-xl space-y-1">
+                  <span className="text-[9.5px] font-mono uppercase font-black text-red-400 flex items-center gap-1.5">
+                    🚫 TITLE REJECTED BY SERVER SECURITY
+                  </span>
+                  <p className="text-[11px] text-red-200 leading-snug">
+                    {customTitleModalError}
+                  </p>
+                </div>
+              )}
+
+              {/* Prohibited Titles Info Box */}
+              <div className="p-3 bg-zinc-950/60 border border-zinc-900 rounded-xl text-[10px] text-zinc-500 space-y-1">
+                <span className="font-bold text-zinc-400 font-mono uppercase block">Strict Server Role Protection:</span>
+                <p className="leading-snug">
+                  The backend validator normalizes all titles (ignoring case, spaces, leetspeak like 0-&gt;o, and punctuation). Reserved administrative titles such as <em>Owner, Admin, Administrator, Super Admin, Moderator, Staff, Sentinel, Root</em> cannot be chosen by members.
+                </p>
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="p-4 border-t border-zinc-850 bg-zinc-950/80 flex items-center justify-between gap-3">
+              {session.customTitle ? (
+                <button
+                  type="button"
+                  disabled={isSavingCustomTitleModal}
+                  onClick={async () => {
+                    setIsSavingCustomTitleModal(true);
+                    setCustomTitleModalError("");
+                    try {
+                      const res = await fetch("/api/user/custom-title", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ ign: session.ign, customTitle: "" })
+                      });
+                      await res.json();
+                      setSession(prev => ({ ...prev, customTitle: "" }));
+                      setCustomTitleModalInput("");
+                      setSystemAlertMessage("✨ Custom title cleared.");
+                      setIsCustomTitleModalOpen(false);
+                    } catch (e) {
+                      setCustomTitleModalError("Failed to clear title.");
+                    } finally {
+                      setIsSavingCustomTitleModal(false);
+                    }
+                  }}
+                  className="px-3 py-2 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-400 hover:text-white font-mono text-[10px] uppercase font-bold rounded-lg cursor-pointer"
+                >
+                  Clear Title
+                </button>
+              ) : <div />}
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsCustomTitleModalOpen(false)}
+                  className="px-4 py-2 bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-zinc-300 font-mono text-[10px] uppercase font-bold rounded-lg cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={isSavingCustomTitleModal}
+                  onClick={async () => {
+                    setIsSavingCustomTitleModal(true);
+                    setCustomTitleModalError("");
+                    try {
+                      const res = await fetch("/api/user/custom-title", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ ign: session.ign, customTitle: customTitleModalInput })
+                      });
+                      const data = await res.json();
+                      if (!res.ok || !data.valid) {
+                        setCustomTitleModalError(data.error || "Title rejected by server security.");
+                        setSystemAlertMessage(`🚫 Title Rejected: ${data.error}`);
+                      } else {
+                        setSession(prev => ({ ...prev, customTitle: data.customTitle }));
+                        setSystemAlertMessage(`✨ ${data.message}`);
+                        setIsCustomTitleModalOpen(false);
+                      }
+                    } catch (e: any) {
+                      setCustomTitleModalError("Network error contacting security service.");
+                    } finally {
+                      setIsSavingCustomTitleModal(false);
+                    }
+                  }}
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-400 text-black font-mono text-[10px] uppercase font-black rounded-lg cursor-pointer transition-all shadow-md"
+                >
+                  {isSavingCustomTitleModal ? "Validating..." : "Save Custom Title"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 🔮 SCI-FI RESPONSIVENESS AND VISIBILITY CORESIGNAL INSPECTION SYSTEM */}

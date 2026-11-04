@@ -1,0 +1,729 @@
+CV ESPORTS HUB — FEAR 4FANGZ
+
+Complete Production Readiness, Security, Privacy, Accessibility, and Performance Audit
+
+Live website: https://fear-4fangzz.onrender.com/
+
+Act as a senior full-stack engineer, application security specialist, database engineer, accessibility auditor, and SEO specialist.
+
+Inspect the existing CV Esports Hub — Fear 4Fangz codebase and implement the improvements below directly in the existing project.
+
+CRITICAL IMPLEMENTATION RULES
+
+* Do not rebuild the website from scratch.
+* Preserve the existing branding, React/TypeScript/Vite frontend, backend, database, authentication, teams, tournaments, Global Chat, and other working features.
+* Inspect the actual architecture before making changes.
+* Implement features in the correct frontend, backend, and database layers.
+* Never claim a feature is secure or compliant without testing it.
+* Do not fabricate business information, reviews, statistics, legal claims, or test results.
+* Do not delete genuine user data.
+* Back up important data before migrations or destructive changes.
+* Do not expose secrets, credentials, API keys, or personal information.
+* Run the available production build and relevant tests after changes.
+* If a requirement does not apply to the current website, explain why rather than adding unnecessary functionality.
+
+SECTION 1 — PRIVACY, LEGAL PAGES, AND USER RIGHTS
+
+1. Privacy Policy
+
+Create a clear, accessible Privacy Policy page explaining:
+
+* What personal information the website collects.
+* Why the information is collected.
+* How account information and user-generated content are used.
+* How authentication and security data are handled.
+* Which third-party services receive data.
+* How long information is retained.
+* How users can request access, correction, or deletion where applicable.
+* How users can contact the website operator about privacy concerns.
+
+Inspect the actual application and its integrations before writing the policy. Do not claim that data is not collected if the application or its providers collect it.
+
+Make the policy accessible through the website footer and relevant registration forms.
+
+2. Terms of Service
+
+Create a Terms of Service page covering appropriate topics such as:
+
+* Acceptable use.
+* Account responsibilities.
+* Community conduct.
+* Tournament participation rules where applicable.
+* Prohibited abuse, cheating, harassment, and exploitation.
+* Account suspension and termination.
+* Intellectual property.
+* Service availability and limitations.
+* Contact information for questions.
+
+Use wording appropriate to the actual service. Do not invent legal guarantees or claim that the terms have been reviewed by a lawyer.
+
+3. Refund Policy
+
+First inspect whether the website accepts payments, sells subscriptions, offers paid tournament entries, or provides paid services.
+
+If payment functionality exists, create an accurate Refund Policy that explains:
+
+* Which purchases are refundable.
+* Applicable refund conditions and deadlines.
+* How users request refunds.
+* How refunds are processed.
+* How cancellations are handled.
+* Any legally required consumer rights.
+
+Do not invent fees or promise refunds that the business cannot provide.
+
+If the website does not currently accept payments, do not invent a refund system. Instead, explain that a refund policy is not currently applicable and identify what would need to be added if paid services are introduced.
+
+4. Cookie Policy
+
+Inspect the website’s actual cookies, local storage, session storage, analytics, and third-party integrations.
+
+Document:
+
+* Essential authentication and security storage.
+* Preferences and functional storage.
+* Analytics or advertising technologies, if present.
+* The purpose and retention of each relevant category.
+* How users can manage applicable preferences.
+
+Do not claim the website uses cookies or tracking tools that are not present.
+
+5. Cookie Consent Banner
+
+If the website uses non-essential cookies or tracking technologies requiring consent, implement an appropriate consent interface.
+
+Requirements:
+
+* Clearly explain the relevant categories.
+* Provide Accept, Reject, and Manage Preferences options where applicable.
+* Do not preselect optional tracking consent.
+* Remember the user’s choice appropriately.
+* Allow users to change their preferences later.
+* Do not block essential authentication or security functionality.
+* Do not load consent-dependent tracking before the required consent is obtained.
+
+Determine which consent rules apply to the actual users and jurisdictions served. Do not introduce a misleading consent banner if no applicable non-essential tracking is used.
+
+6. Form Consent and Notices
+
+Review registration forms, contact forms, tournament registration, and other forms that collect personal information.
+
+* Provide appropriate privacy notices at the point of collection.
+* Obtain consent when it is legally required.
+* Keep optional marketing consent separate from essential account registration.
+* Do not precheck optional consent boxes.
+* Explain the purpose of required information.
+* Record consent only when necessary and appropriate.
+* Do not require users to agree to unrelated marketing merely to create an account.
+
+7. Data Minimization
+
+Collect only the information necessary for each feature.
+
+* Remove unnecessary collection of personal information.
+* Avoid requesting sensitive information without a justified need.
+* Do not expose private account details in public profiles, chat, team pages, or API responses.
+* Avoid storing duplicate personal information unnecessarily.
+* Set reasonable retention periods.
+* Ensure logs do not contain passwords, authentication tokens, or unnecessary personal information.
+
+Preserve data required for legitimate account operation, security, legal obligations, and genuine user functionality.
+
+8. Audit Third-Party SDKs and Integrations
+
+Inventory the application’s dependencies, SDKs, APIs, analytics, authentication providers, and external integrations.
+
+For each integration:
+
+* Identify its actual purpose.
+* Determine what data it receives.
+* Remove unused or unnecessary integrations.
+* Review its security and maintenance status.
+* Avoid sending personal information unless necessary.
+* Keep credentials on the server when appropriate.
+* Document relevant data-sharing practices.
+
+Do not remove an integration that is necessary for an existing working feature without providing and testing a suitable replacement.
+
+9. Remove Dark Patterns
+
+Audit the interface for deceptive or coercive design.
+
+* Make important choices understandable.
+* Do not use misleading buttons.
+* Do not hide cancellation or account deletion options.
+* Do not make rejecting optional cookies unnecessarily difficult.
+* Do not use fake urgency or fabricated activity.
+* Do not misrepresent subscription status, fees, or tournament eligibility.
+* Do not trick users into sharing personal information.
+* Keep privacy and account settings accessible.
+
+10. Fees and Pricing Transparency
+
+Inspect any existing payment, subscription, tournament entry, or purchase functionality.
+
+If applicable:
+
+* Display the full price before payment.
+* Clearly disclose mandatory fees.
+* Explain recurring charges and renewal terms.
+* Clearly display cancellation conditions.
+* Avoid surprise charges.
+* Ensure the final amount matches what the user approved.
+
+If the platform does not process payments, do not add a fake checkout or payment system.
+
+11. Remove Fake Reviews
+
+Inspect public testimonials, reviews, ratings, endorsements, and social proof.
+
+* Remove fabricated reviews and testimonials.
+* Remove invented user counts and activity figures.
+* Remove placeholder ratings presented as real.
+* Preserve genuine, appropriately obtained user feedback.
+* Clearly label demonstrations or sample content when retained for development.
+
+Do not generate fake reviews to make the website appear more popular.
+
+12. Remove Unsupported Claims
+
+Audit the public landing page, metadata, tournament pages, announcements, and marketing content.
+
+Remove or correct unsupported claims about:
+
+* Number of users.
+* Tournament prizes.
+* Partnerships or sponsorships.
+* Certifications.
+* Awards.
+* Security guarantees.
+* Availability and uptime.
+* Rankings and achievements.
+* Business registration or official affiliations.
+
+Only publish claims supported by actual records or verifiable information.
+
+SECTION 2 — ACCESSIBILITY AND PROFESSIONAL DESIGN
+
+13. Add Appropriate Alternative Text
+
+Audit images, logos, icons, and meaningful visual content.
+
+* Add descriptive alternative text to informative images.
+* Use empty alternative text for purely decorative images.
+* Give meaningful accessible labels to icon-only buttons.
+* Avoid filenames as alternative text.
+* Do not repeat adjacent text unnecessarily.
+* Ensure images do not communicate essential information without an accessible equivalent.
+
+14. Fix Color Contrast
+
+Audit text, buttons, form fields, notifications, and other UI elements.
+
+Aim to meet WCAG 2.2 AA contrast requirements:
+
+* At least 4.5:1 for normal text.
+* At least 3:1 for large text.
+* At least 3:1 for relevant UI components and graphical indicators.
+
+Preserve the existing esports identity while improving readability.
+
+Do not use color as the only way to communicate errors, success, rank, permissions, or status.
+
+15. Keyboard Navigation
+
+Ensure that the website can be used with a keyboard.
+
+* Make interactive controls reachable by keyboard.
+* Provide visible focus indicators.
+* Use semantic buttons and links.
+* Support appropriate Enter and Space interactions.
+* Ensure modals manage focus correctly.
+* Allow dialogs to close with Escape where appropriate.
+* Prevent keyboard focus from becoming trapped incorrectly.
+* Ensure menus and forms work without a mouse.
+* Keep focus order logical.
+* Avoid inaccessible custom controls.
+
+Test navigation through login, registration, profiles, teams, tournaments, Global Chat, and administrative interfaces.
+
+SECTION 3 — BUSINESS INFORMATION AND AGE-RELATED PRIVACY
+
+16. Business Details
+
+Inspect existing verified business and operator information.
+
+Provide a suitable contact or About page that displays accurate information, such as:
+
+* Website or platform name.
+* Verified operator or business name, if available.
+* Contact email or support channel, if configured.
+* Appropriate business or legal details where required.
+
+Do not invent a physical address, company registration number, telephone number, or email address.
+
+If necessary information is missing, identify it for the operator to supply manually.
+
+17. Age Restrictions and Children’s Data
+
+Inspect the existing registration flow, audience, and features to determine whether children may use the platform and which rules apply.
+
+* Do not collect birth dates or age information without a justified purpose.
+* If age verification is necessary, implement proportionate measures.
+* Where applicable, obtain valid parental consent before collecting or processing children’s personal information in ways that require it.
+* Provide appropriate privacy notices.
+* Restrict features when required by applicable law.
+* Avoid collecting parental identity documents or other sensitive information unnecessarily.
+* Do not claim compliance with child privacy laws without verifying the actual implementation and applicable requirements.
+
+If the website is intended only for users above a specified age, implement and clearly communicate a truthful age policy supported by the actual product requirements.
+
+SECTION 4 — EMAIL, CONTENT LICENSING, AND DATA DELETION
+
+18. Unsubscribe Links in Emails
+
+Inspect all outbound email functionality.
+
+If the website sends marketing or subscription emails:
+
+* Include an appropriate unsubscribe mechanism.
+* Process unsubscribe requests reliably.
+* Prevent unsubscribed recipients from receiving further marketing messages, subject to applicable legal requirements.
+* Keep transactional security and account emails appropriately distinguished from marketing.
+* Do not require unnecessary login steps to unsubscribe when a simpler compliant method is appropriate.
+
+If the application does not send marketing emails, do not create a fake email subscription system.
+
+19. Font and Image Licensing
+
+Audit the use of fonts, icons, images, logos, and other assets.
+
+* Identify assets with unclear licensing.
+* Prefer original, properly licensed, or appropriately licensed open-source assets.
+* Verify relevant usage restrictions.
+* Preserve required attribution.
+* Replace assets that cannot legally be used.
+* Do not remove assets simply because their license is not immediately obvious; investigate first.
+
+Do not claim ownership of third-party brands or esports assets without a basis.
+
+20. User Data Deletion Requests
+
+Provide a suitable process for users to request account deletion and personal-data deletion where applicable.
+
+Requirements:
+
+* Make the process easy to find.
+* Verify the requester’s identity proportionately.
+* Explain the consequences of account deletion.
+* Delete or anonymize relevant personal information where required.
+* Handle associated profile, team, and other records appropriately.
+* Preserve information only where necessary for legal obligations, security, or legitimate retention requirements.
+* Explain any applicable retention exceptions.
+* Do not accidentally delete other users’ records or shared data they are entitled to retain.
+
+If self-service deletion is implemented, require appropriate confirmation and protect it against unauthorized requests.
+
+SECTION 5 — SECURITY, API PROTECTION, AND COST CONTROLS
+
+21. Add Rate Limiting
+
+Inspect public and authenticated endpoints.
+
+Implement appropriate rate limits for:
+
+* Login attempts.
+* Registration.
+* Password reset, if supported.
+* Global Chat message submission.
+* Comment and post creation.
+* Search.
+* File uploads.
+* Administrative operations.
+* Expensive API integrations.
+
+Requirements:
+
+* Use limits appropriate to each operation.
+* Return clear errors when limits are exceeded.
+* Avoid rate limits that make ordinary use unreliable.
+* Use a shared store for distributed rate limiting when multiple application instances require consistent limits.
+* Do not trust client-supplied identity or IP headers without appropriate proxy configuration.
+
+22. Set API Limits
+
+Review every API route and external API integration.
+
+* Validate request bodies, query parameters, and path parameters.
+* Restrict payload sizes.
+* Limit pagination values.
+* Apply request timeouts where appropriate.
+* Protect expensive operations from abuse.
+* Validate authorization before performing sensitive work.
+* Keep API secrets on the server.
+* Avoid unlimited requests to third-party providers.
+* Return appropriate status codes and safe error messages.
+
+Do not break existing API contracts without updating and testing their callers.
+
+23. Set Spending Caps and Usage Budgets
+
+Inspect integrations that may incur charges, including AI APIs, paid services, hosting, and external providers.
+
+Where supported:
+
+* Configure provider spending limits or usage budgets.
+* Add per-user and global request quotas.
+* Restrict expensive features to authorized users where appropriate.
+* Track usage without collecting unnecessary personal information.
+* Add alerts for unusual usage.
+* Handle provider quota exhaustion gracefully.
+
+Do not assume a provider supports hard spending caps if it does not. Clearly identify any required manual configuration in the provider dashboard.
+
+24. Add Safe Error Handling
+
+Implement consistent error handling throughout the application.
+
+* Handle validation errors.
+* Handle authentication and authorization failures.
+* Handle database errors.
+* Handle network failures.
+* Handle external API errors.
+* Avoid exposing stack traces or secrets to users.
+* Provide useful messages without revealing sensitive internal details.
+* Log diagnostic information safely on the server.
+* Ensure failed requests do not leave records in inconsistent states.
+
+25. Add Loading States
+
+Ensure asynchronous actions have clear loading states.
+
+Examples:
+
+* Login and registration.
+* Loading profiles.
+* Fetching tournaments.
+* Loading teams.
+* Sending chat messages.
+* Uploading files.
+* Saving profile settings.
+* Calling external APIs.
+
+Prevent duplicate submissions when an operation is already in progress.
+
+Keep the interface responsive and accessible while loading.
+
+26. Add Empty States
+
+Provide useful empty states when there is no data.
+
+Examples:
+
+* No teams available.
+* No tournaments scheduled.
+* No chat messages.
+* No leaderboard results.
+* No notifications.
+* No search results.
+
+Use clear explanations and relevant next steps.
+
+Never create fake users, fake activity, or fabricated results merely to fill empty screens.
+
+27. Handle Failed Requests
+
+Implement reliable recovery behavior for failed API calls.
+
+* Display understandable errors.
+* Preserve unsent user input where safe.
+* Provide retry options where appropriate.
+* Prevent duplicate records when retrying.
+* Avoid infinite retry loops.
+* Distinguish recoverable errors from permanent failures.
+* Handle offline or unstable connections gracefully.
+
+28. Handle API Timeouts
+
+Configure reasonable timeouts for external requests and expensive backend operations.
+
+* Avoid indefinitely hanging requests.
+* Cancel unnecessary client-side requests when appropriate.
+* Handle timeout errors gracefully.
+* Use retries only when safe.
+* Apply exponential backoff and jitter where appropriate.
+* Avoid retrying non-idempotent operations in ways that create duplicates.
+
+29. Prevent Duplicate Subscriptions
+
+If subscription functionality exists:
+
+* Enforce uniqueness on the server and in the database where appropriate.
+* Prevent repeated submissions from creating duplicate subscriptions.
+* Handle simultaneous requests safely.
+* Provide clear feedback when the user is already subscribed.
+* Ensure subscription status is derived from trusted records.
+
+If the website has no subscriptions, do not add a subscription system unnecessarily.
+
+30. Prevent Duplicate Payments
+
+If payment processing exists:
+
+* Use provider-supported idempotency keys.
+* Verify payment events using the provider’s secure mechanism.
+* Avoid trusting client-submitted payment success.
+* Make transaction processing safe against repeated callbacks.
+* Enforce appropriate transaction uniqueness.
+* Prevent duplicate charges during retries.
+* Reconcile payment state with the trusted payment provider.
+* Never store raw card details unless the system is explicitly designed and authorized to do so.
+
+If the website does not accept payments, do not introduce payment functionality as part of this task.
+
+SECTION 6 — DATABASE AND PERFORMANCE OPTIMIZATION
+
+31. Optimize Database Queries
+
+Inspect database access patterns and identify expensive queries.
+
+* Avoid unnecessary repeated queries.
+* Reduce N+1 query patterns.
+* Fetch only the fields needed.
+* Use appropriate joins or batching where supported.
+* Avoid loading all records into memory unnecessarily.
+* Inspect slow queries and query plans where possible.
+* Preserve correct authorization and data filtering.
+
+Optimize actual bottlenecks rather than rewriting the entire data layer.
+
+32. Add Appropriate Database Indexes
+
+Inspect query patterns, relationships, filters, and sorting operations.
+
+Add indexes where they improve real queries, including suitable fields used for:
+
+* User lookup.
+* Team lookup.
+* Tournament listing.
+* Chat retrieval.
+* Search and filtering.
+* Foreign-key relationships.
+* Time-based ordering.
+
+Before adding indexes:
+
+* Confirm the actual database engine and schema.
+* Avoid unnecessary duplicate indexes.
+* Consider storage and write-performance costs.
+* Use safe migrations.
+* Test index creation and query behavior.
+
+Do not assume a particular database technology without inspecting the project.
+
+33. Paginate Large Results
+
+Implement pagination or cursor-based loading for large datasets.
+
+Relevant areas may include:
+
+* Global Chat history.
+* Teams.
+* Tournament lists.
+* Leaderboards.
+* Search results.
+* Administrative user listings.
+
+Requirements:
+
+* Enforce reasonable page-size limits.
+* Use stable sorting.
+* Avoid returning unlimited database records.
+* Preserve the existing interface where practical.
+* Prevent unauthorized records from appearing in results.
+* Use cursor pagination where appropriate for large or frequently changing datasets.
+
+34. Compress and Optimize Files
+
+Improve performance by optimizing static assets and responses.
+
+* Enable appropriate HTTP compression where supported.
+* Optimize image sizes and formats.
+* Avoid unnecessarily large JavaScript bundles.
+* Lazy-load suitable below-the-fold images.
+* Use cache-friendly asset naming and headers.
+* Avoid compressing content that is already compressed when it provides no benefit.
+* Preserve image quality and website functionality.
+
+35. Limit Upload Size
+
+If the website supports uploads:
+
+* Enforce maximum file sizes on the server.
+* Validate actual file types rather than trusting file extensions.
+* Limit accepted formats.
+* Generate safe storage names.
+* Prevent path traversal and unsafe file handling.
+* Protect against malicious or oversized uploads.
+* Apply appropriate authentication and authorization.
+* Use safe storage and access policies.
+* Avoid loading large uploads entirely into memory.
+
+Choose limits suitable for the actual supported use cases.
+
+36. Cache Repeat Requests
+
+Identify requests that can safely benefit from caching.
+
+Potential candidates include:
+
+* Public tournament lists.
+* Public team listings.
+* Static configuration.
+* Public landing-page data.
+* Static assets.
+
+Requirements:
+
+* Avoid caching private account data in shared caches.
+* Do not cache privileged responses where they could leak between users.
+* Invalidate or refresh cached data when records change.
+* Use appropriate cache headers.
+* Avoid introducing stale permissions or stale financial state.
+* Preserve real-time behavior where needed.
+
+37. Add Uptime Monitoring
+
+Prepare the application for reliable production monitoring.
+
+* Identify suitable health-check endpoints.
+* Ensure health checks do not expose sensitive details.
+* Distinguish application health from dependency health.
+* Configure appropriate logging and monitoring integration.
+* Provide guidance for external uptime monitoring if required.
+
+Do not claim that external monitoring is active unless it has actually been configured.
+
+38. Improve Error Logging
+
+Implement safe, structured server-side error logging.
+
+* Include useful timestamps and error categories.
+* Add request identifiers where appropriate.
+* Avoid logging passwords, tokens, session cookies, or sensitive personal information.
+* Prevent log injection through untrusted input.
+* Avoid returning internal stack traces to public clients.
+* Use appropriate log levels.
+* Keep logs useful for diagnosing failures.
+
+If a monitoring provider is required, identify it and any necessary manual configuration.
+
+39. Test Simultaneous Users
+
+Test relevant application features under concurrent use.
+
+Focus on:
+
+* Multiple users sending Global Chat messages.
+* Simultaneous team creation or updates.
+* Concurrent tournament registration.
+* Duplicate form submissions.
+* Role changes and authorization.
+* Database consistency.
+* Rate-limit behavior.
+
+Use suitable automated tests or controlled load tests.
+
+Do not run uncontrolled production load tests that could interrupt service or create charges. Use a staging environment where possible.
+
+40. Test Backup Restoration
+
+Inspect the database and hosting configuration.
+
+* Determine whether backups are configured.
+* Verify the backup process where supported.
+* Document how backups are restored.
+* Test restoration in a safe staging environment.
+* Confirm that restored data preserves essential relationships.
+* Protect backup files and credentials.
+* Avoid overwriting production data during a test.
+
+Do not claim that backup restoration works unless a restoration test has actually succeeded.
+
+SECTION 7 — EXISTING ROLE SECURITY MUST REMAIN INTACT
+
+Preserve and verify the existing security requirements for CV Esports Hub.
+
+* Remove public Switch Roles controls.
+* Ensure signed-out visitors cannot access administrative functions.
+* Keep owner and admin privileges separate from custom profile titles.
+* Allow only the verified owner to perform owner-only operations.
+* Prevent admins from automatically accessing owner-only actions.
+* Prevent members from changing their own roles.
+* Enforce authorization on the backend for APIs and WebSocket events.
+* Ensure the special admin login requires valid authentication.
+* Never grant access merely because someone knows an admin URL.
+* Keep restricted system messages inaccessible to unauthorized members.
+* Preserve genuine user accounts and user-created content.
+
+Hiding a button is not a substitute for server-side security.
+
+SECTION 8 — IMPLEMENTATION AND TESTING PLAN
+
+Before changing code:
+
+1. Inspect the repository structure and existing architecture.
+2. Identify the current database and authentication provider.
+3. Inspect actual integrations and data flows.
+4. Identify which of the 40 items apply to existing features.
+5. Review existing tests and build scripts.
+6. Create a safe implementation plan.
+
+Implement changes in manageable groups. Avoid making a large, unverified rewrite.
+
+After each group:
+
+* Run relevant tests.
+* Fix regressions.
+* Verify existing functionality.
+* Review security-sensitive changes carefully.
+
+Before finishing:
+
+* Run the existing production build.
+* Run relevant automated tests.
+* Check TypeScript and JSX errors.
+* Verify role-based authorization.
+* Verify Global Chat.
+* Check relevant privacy and accessibility features.
+* Review database migrations.
+* Verify error handling and performance improvements.
+* Identify any requirements needing manual configuration.
+
+Do not delete genuine user content to make the website appear empty.
+
+Do not invent compliance certifications, business details, reviews, or test results.
+
+SECTION 9 — FINAL REPORT
+
+Provide a report with the following:
+
+1. Files modified.
+2. Security issues found and fixed.
+3. Privacy and legal pages implemented.
+4. Cookie and consent behavior.
+5. Accessibility improvements.
+6. API security and rate-limiting changes.
+7. Spending and usage protections.
+8. Database query and indexing changes.
+9. Upload, caching, and pagination improvements.
+10. Monitoring and logging changes.
+11. Concurrency and backup-restoration tests performed.
+12. Tests and production build results.
+13. Features that do not apply to the current website.
+14. Manual configuration still required.
+15. Any unresolved risks.
+
+Separate completed changes from recommendations and manual tasks.
+
+FINAL PRIORITY: Protect user data and account security first, preserve working features, make changes that apply to the actual project, and verify each change before claiming success.

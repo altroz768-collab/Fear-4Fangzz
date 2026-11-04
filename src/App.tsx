@@ -35,7 +35,9 @@ import {
   Copy,
   X,
   ChevronRight,
+  User,
   UserCheck,
+  Mail,
   Calendar,
   MessageSquare,
   ChevronDown,
@@ -128,10 +130,13 @@ import WorldChatSystem from "./components/WorldChatSystem";
 import RosterPlayerComparison from "./components/RosterPlayerComparison";
 import PlayerComparisonSidePanel from "./components/PlayerComparisonSidePanel";
 import { useTheme } from "./context/ThemeContext";
+import { useFirebaseAuth } from "./context/FirebaseAuthContext";
 import EsportsControlCenter from "./components/EsportsControlCenter";
 import CVSecurityGuardian from "./components/CVSecurityGuardian";
 import CVAuditLogSystem from "./components/CVAuditLogSystem";
 import { CVAestheticEffects } from "./components/CVAestheticEffects";
+import GmailHub from "./components/GmailHub";
+import LegalAndAuthModals from "./components/LegalAndAuthModals";
 import html2canvas from "html2canvas";
 import {
   HomePageDensity,
@@ -151,6 +156,14 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tool
 
 export default function App() {
   const { theme, toggleTheme } = useTheme();
+  const { 
+    firebaseSession, 
+    logout: firebaseLogout, 
+    currentUser, 
+    updateCustomTitleInFirebase,
+    updateUserSession,
+    signInWithGoogle
+  } = useFirebaseAuth();
   const getRoleColors = (role: string) => {
     switch (role) {
       case "Owner":
@@ -469,16 +482,16 @@ export default function App() {
     ];
   };
 
-  // Active Simulated User
-  const [session, setSession] = useState<UserSession>({
-    ign: "CV_Slayer_IGL",
-    role: "Owner",
-    coins: 750,
-    battlePassXp: 120,
-    battlePassLevel: 3,
-    verified: true,
-    customTitle: "Team Captain & IGL"
-  });
+  // Real-time authoritative Firebase user session from useFirebaseAuth hook
+  const session: UserSession = firebaseSession;
+
+  // Real-time session mutator connected to Firebase Authentication and Cloud Firestore
+  const setSession = (updater: React.SetStateAction<UserSession>) => {
+    const nextSession = typeof updater === "function" ? updater(firebaseSession) : updater;
+    updateUserSession(nextSession);
+  };
+
+  const [activeLegalOrAuthModal, setActiveLegalOrAuthModal] = useState<"member-login" | "register" | "admin-login" | "privacy" | "terms" | "cookies" | "delete-account" | null>(null);
 
   const [activeTab, setActiveTab ] = useState<string>(() => {
     try {
@@ -4798,6 +4811,7 @@ export default function App() {
                 { id: "communityHub", label: "🌐 Community Playground", icon: Compass, category: "public" },
                 { id: "layoutProtection", label: "🛡️ Layout Guard Deck", icon: ShieldCheck, category: "public" },
                 { id: "seoPreview", label: "SEO & Search Preview 🔍", icon: Search, category: "public" },
+                { id: "gmail", label: "Gmail Dispatch ✉️", icon: Mail, category: "public" },
               ].map((item) => {
                 const Icon = item.icon;
                 return (
@@ -4898,101 +4912,97 @@ export default function App() {
             </div>
           </div>
 
-          {/* SECURITY SIMULATOR ROLE SWITCHER CONTROLLER */}
-          <div className={`bg-[#111111] p-4 rounded-xl border ${getRoleColors(session.role).borderClass}/30 ${getRoleColors(session.role).shadowClass}/40 shadow-md space-y-3`}>
+          {/* SECURE AUTHENTICATED PROFILE & ACCESS CONTROL (Replaces Public Switch Roles) */}
+          <div className="bg-[#111111] p-4 rounded-xl border border-zinc-800 shadow-md space-y-3">
             <div className="flex items-center justify-between">
-              <span className={`text-[9px] font-mono tracking-widest uppercase font-black ${getRoleColors(session.role).textClass}`}>ROLE SIMULATOR</span>
-              <span className={`w-1.5 h-1.5 rounded-full animate-ping ${session.role === "Owner" ? "bg-[#FF001C]" : ["Admin", "Head Admin", "Team Captain"].includes(session.role) ? "bg-[#FFD700]" : "bg-[#00FF9D]"}`} />
-            </div>
-            
-            <div className="text-[10px] font-mono leading-tight">
-              <span className="text-gray-500 block text-[8px] uppercase font-bold tracking-wider">Security Clearance</span>
-              <span className={`font-black uppercase tracking-wider ${getRoleColors(session.role).textClass}`}>
-                🔐 {
-                  session.role === "Owner" ? "FULL ROOT ACCESS" :
-                  session.role === "Team Captain" ? "COMMANDER ACCESS" :
-                  session.role === "Member" ? "STANDARDIZED SECTOR" : "SANDBOX PLAYGROUND"
-                }
+              <span className="text-[9px] font-mono tracking-widest uppercase font-black text-gray-400">
+                {session.isLoggedIn ? "VERIFIED ACCOUNT" : "COMMUNITY PORTAL"}
               </span>
+              <span className={`w-2 h-2 rounded-full ${session.isLoggedIn ? "bg-emerald-500 animate-pulse" : "bg-gray-600"}`} />
             </div>
 
-            {/* Glowing Pill Dropper */}
-            <div className="relative w-full">
-              <button
-                id="active-persona-pill-btn"
-                onClick={() => setIsRoleDropdownOpen(prev => !prev)}
-                className={`w-full relative inline-flex items-center justify-between gap-3 px-4 py-2 bg-gradient-to-r from-stone-950 to-neutral-900 text-white rounded-full border-2 ${getRoleColors(session.role).borderClass} ${getRoleColors(session.role).shadowClass} ${getRoleColors(session.role).hoverShadowClass} font-orbitron font-black text-[11px] h-9 hover:scale-[1.02] active:scale-95 transition-all cursor-pointer select-none`}
-              >
-                <span className="flex items-center gap-1.5 truncate">
-                  {session.role === "Owner" && <span>👑 OWNER CORE</span>}
-                  {session.role === "Head Admin" && <span>🔥 HEAD ADMIN</span>}
-                  {session.role === "Admin" && <span>⚡ ADMIN</span>}
-                  {session.role === "Moderator" && <span>🔮 MODERATOR</span>}
-                  {session.role === "Team Captain" && <span>⚡ CAPTAIN CORE</span>}
-                  {session.role === "Squad Leader" && <span>💠 SQUAD LEADER</span>}
-                  {session.role === "Verified Player" && <span>🛡️ VERIFIED</span>}
-                  {session.role === "Member" && <span>🎯 MEMBER UNIT</span>}
-                  {session.role === "Recruit" && <span>⭐ RECRUIT APPL</span>}
-                  {session.role === "Visitor" && <span>👣 VISITOR</span>}
-                  {session.role === "Guest" && <span>👤 GUEST</span>}
-                </span>
-                <ChevronDown size={12} className={`transition-transform duration-300 shrink-0 ${getRoleColors(session.role).chevronClass} ${isRoleDropdownOpen ? "rotate-180" : ""}`} />
-              </button>
-
-              {/* DROPDOWN OVERLAY PANEL */}
-              {isRoleDropdownOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-40 bg-transparent" 
-                    onClick={() => setIsRoleDropdownOpen(false)} 
-                  />
-                  <div 
-                    id="persona-dropdown-menu"
-                    className={`absolute left-0 bottom-full mb-2 w-full bg-black border-2 ${getRoleColors(session.role).borderClass} rounded-xl shadow-[0_10px_35px_rgba(0,0,0,0.95)] z-50 overflow-hidden font-sans text-left animate-fade-in`}
-                  >
-                    <div className="p-2 border-b border-zinc-900 bg-stone-950 font-mono text-[8px] text-gray-500 tracking-widest uppercase">
-                      SELECT DECOY PERSONA
+            {session.isLoggedIn ? (
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-red-950/60 border border-red-500/40 flex items-center justify-center text-sm font-bold text-white shrink-0">
+                    {session.role === "Owner" ? "👑" : ["Admin", "Head Admin"].includes(session.role) ? "⚡" : "🛡️"}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold text-white truncate font-orbitron">
+                        {session.ign}
+                      </span>
+                      {session.verified && (
+                        <ShieldCheck size={13} className="text-emerald-400 shrink-0" />
+                      )}
                     </div>
-                    <div className="max-h-64 overflow-y-auto custom-scrollbar">
-                      {[
-                        { role: "Owner" as UserRole, label: "👑 OWNER", desc: "Full Unrestricted Override", color: "text-[#FF001C]" },
-                        { role: "Head Admin" as UserRole, label: "🔥 HEAD ADMIN", desc: "Command Staff Access", color: "text-[#FF4500]" },
-                        { role: "Admin" as UserRole, label: "⚡ ADMIN", desc: "Sub-Level Operations Module", color: "text-[#FFD700]" },
-                        { role: "Moderator" as UserRole, label: "🔮 MODERATOR", desc: "Auditor Sector Viewport", color: "text-[#C084FC]" },
-                        { role: "Team Captain" as UserRole, label: "🌟 TEAM CAPTAIN", desc: "Commander Decolink Access", color: "text-[#F59E0B]" },
-                        { role: "Squad Leader" as UserRole, label: "💠 SQUAD LEADER", desc: "Tactical Squad Control", color: "text-[#06B6D4]" },
-                        { role: "Verified Player" as UserRole, label: "🛡️ VERIFIED PLAYER", desc: "Certified Participant", color: "text-[#3B82F6]" },
-                        { role: "Member" as UserRole, label: "🎯 ACTIVE MEMBER", desc: "Standard Sector Access", color: "text-[#00FF9D]" },
-                        { role: "Recruit" as UserRole, label: "⭐ RECRUIT CANDIDATE", desc: "Roster Audit Only", color: "text-[#34D399]" },
-                        { role: "Visitor" as UserRole, label: "👣 VISITOR", desc: "Spectator Clearance Only", color: "text-[#94A3B8]" },
-                        { role: "Guest" as UserRole, label: "👤 GUEST", desc: "Read-Only Sandbox Clearance", color: "text-[#64748B]" }
-                      ].map((item) => (
-                        <button
-                          key={item.role}
-                          onClick={() => {
-                            setSession(prev => ({ ...prev, role: item.role }));
-                            setSystemAlertMessage(`🎭 Identity shifted to: ${item.role}`);
-                            setIsRoleDropdownOpen(false);
-                            // If switching to Recruit/Visitor/Guest, move activeTab to home if restricted
-                            if (["Recruit", "Visitor", "Guest"].includes(item.role) && activeTab !== "home" && activeTab !== "recruitment" && activeTab !== "team" && activeTab !== "leaderboards") {
-                              setActiveTab("home");
-                            }
-                          }}
-                          className={`w-full p-2.5 hover:bg-neutral-900 cursor-pointer transition-all duration-200 border-b border-zinc-900/50 last:border-0 text-left flex flex-col ${
-                            session.role === item.role ? "bg-red-950/40" : ""
-                          }`}
-                        >
-                          <span className={`text-[10px] font-black font-orbitron tracking-wide ${item.color}`}>
-                            {item.label}
-                          </span>
-                          <span className="text-[8px] text-gray-400 font-mono">{item.desc}</span>
-                        </button>
-                      ))}
+                    <div className="text-[10px] text-red-400 font-mono truncate font-bold">
+                      {session.customTitle || session.role}
                     </div>
                   </div>
-                </>
-              )}
-            </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1 border-t border-zinc-900">
+                  <button
+                    onClick={() => setActiveLegalOrAuthModal("delete-account")}
+                    title="Account Settings & Data Privacy"
+                    className="p-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-gray-400 hover:text-red-400 text-[10px] font-mono transition-colors cursor-pointer flex-1 text-center"
+                  >
+                    Privacy / Erasure
+                  </button>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await firebaseLogout();
+                      } catch (e) {
+                        console.error("Sign out error", e);
+                      }
+                      localStorage.removeItem("cv_auth_token");
+                      localStorage.removeItem("cv_user_session");
+                      setSession({
+                        ign: "Visitor",
+                        role: "Visitor",
+                        coins: 0,
+                        battlePassXp: 0,
+                        battlePassLevel: 1,
+                        verified: false,
+                        isLoggedIn: false
+                      });
+                      setSystemAlertMessage("👋 Signed out successfully.");
+                    }}
+                    className="p-1.5 rounded-lg bg-red-950/50 hover:bg-red-900/60 text-red-400 hover:text-white text-[10px] font-orbitron font-bold transition-colors cursor-pointer px-3"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <button
+                  onClick={() => setActiveLegalOrAuthModal("member-login")}
+                  className="w-full py-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-500 hover:to-red-600 text-white rounded-lg font-orbitron font-bold text-[11px] tracking-wide transition-all shadow-md shadow-red-950/40 cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <User size={13} />
+                  Player Sign In
+                </button>
+
+                <div className="flex items-center justify-between text-[10px] font-mono pt-1 text-gray-500">
+                  <button
+                    onClick={() => setActiveLegalOrAuthModal("register")}
+                    className="text-gray-400 hover:text-red-400 hover:underline cursor-pointer"
+                  >
+                    Register Profile
+                  </button>
+                  <button
+                    onClick={() => setActiveLegalOrAuthModal("admin-login")}
+                    className="text-gray-500 hover:text-amber-400 flex items-center gap-1 cursor-pointer"
+                  >
+                    <Lock size={10} />
+                    Staff Portal
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
         </motion.aside>
@@ -5047,7 +5057,13 @@ export default function App() {
                   </p>
                   
                   <button
-                    onClick={() => setIsManagementPortalOpen(true)}
+                    onClick={() => {
+                      if (hasTabPermission(session.role, "Staff Controls")) {
+                        setIsManagementPortalOpen(true);
+                      } else {
+                        setActiveLegalOrAuthModal("admin-login");
+                      }
+                    }}
                     className="mx-auto inline-flex items-center gap-2 px-5 py-2.5 bg-red-950 hover:bg-red-800 border border-red-500 text-white font-orbitron font-black text-[11px] uppercase rounded-lg cursor-pointer duration-150 tracking-wider shadow-[0_0_15px_rgba(255,0,31,0.3)] hover:scale-105"
                   >
                     <Unlock size={12} className="animate-pulse" />
@@ -5087,7 +5103,13 @@ export default function App() {
                   </p>
                   
                   <button
-                    onClick={() => setIsManagementPortalOpen(true)}
+                    onClick={() => {
+                      if (hasTabPermission(session.role, "Staff Controls")) {
+                        setIsManagementPortalOpen(true);
+                      } else {
+                        setActiveLegalOrAuthModal("admin-login");
+                      }
+                    }}
                     className="mx-auto inline-flex items-center gap-2 px-5 py-2.5 bg-neutral-900 hover:bg-neutral-800 border border-zinc-800 text-zinc-300 hover:text-white font-orbitron font-black text-[11px] uppercase rounded-lg cursor-pointer duration-150 tracking-wider hover:scale-105"
                   >
                     <Settings size={12} className="text-amber-500 animate-pulse" />
@@ -11682,6 +11704,12 @@ export default function App() {
             </div>
           )}
 
+          {activeTab === "gmail" && (
+            <div className="animate-fade-in text-left">
+              <GmailHub />
+            </div>
+          )}
+
             </motion.div>
           )}
           </AnimatePresence>
@@ -12204,16 +12232,14 @@ Generated: ${new Date().toLocaleString()} (Local Time)
 
             {/* CONTINUE WITH GOOGLE Button */}
             <button
-              onClick={() => {
+              onClick={async () => {
                 setShowSignUpModal(false);
-                setSession(prev => ({
-                  ...prev,
-                  ign: "CV_Google_Member",
-                  role: "Recruit",
-                  coins: prev.coins + 500,
-                  verified: true
-                }));
-                setSystemAlertMessage("🎉 Registered successfully through Google competitive client!");
+                try {
+                  await signInWithGoogle();
+                  setSystemAlertMessage("🎉 Authenticated successfully through Firebase Google authentication!");
+                } catch (err: any) {
+                  setSystemAlertMessage("❌ Firebase sign-in failed: " + (err.message || "Operation cancelled"));
+                }
               }}
               className="w-full bg-[#040404] border border-[#181818] hover:border-gray-500 text-white font-bold text-[10px] font-mono uppercase tracking-widest rounded-lg py-3.5 flex items-center justify-center gap-2 transition-all cursor-pointer"
             >
@@ -12231,21 +12257,8 @@ Generated: ${new Date().toLocaleString()} (Local Time)
             <form 
               onSubmit={(e) => {
                 e.preventDefault();
-                if (!signUpIgn.trim()) {
-                  setSystemAlertMessage("⚠️ Please specify a valid esports gaming tag.");
-                  return;
-                }
-                setSession(prev => ({
-                  ...prev,
-                  ign: signUpIgn,
-                  coins: prev.coins + 500,
-                  role: "Recruit",
-                  verified: true,
-                  battlePassLevel: 1,
-                  battlePassXp: 120
-                }));
                 setShowSignUpModal(false);
-                setSystemAlertMessage(`🎉 Welcome to the Club, ${signUpIgn}! Your +500 Coins starter bounty has been unlocked.`);
+                setActiveLegalOrAuthModal("register");
               }}
               className="space-y-4 text-left"
             >
@@ -13612,16 +13625,45 @@ Generated: ${new Date().toLocaleString()} (Local Time)
       {/* FOOTER DETAILS */}
       <footer className="relative z-10 bg-[#0D0D0D] border-t border-gray-900 p-6 text-center text-xs text-gray-500 select-none">
         <div className="max-w-[1700px] mx-auto space-y-3">
-          <p className="font-mono text-[10px] text-gray-650 tracking-wider">
-            ⚡ CV PLATFORM OVERLAYS STABILITY GUARANTEE CERTIFICATION
+          <p className="font-mono text-[10px] text-gray-400 tracking-wider">
+            CV ESPORTS HUB — FEAR 4FANGZ COMPETITIVE PLATFORM
           </p>
-          <p>© 2026 CV eSports Hub Inc. All gameplay records, in-game coins economy, and strategic map layouts are fully copyrighted.</p>
-          <div className="flex justify-center gap-4 text-[10px] text-gray-600 font-mono">
-            <span>Server Time check: 12:40 UTC</span>
+          <p className="text-gray-400">© 2026 Fear 4Fangz Clan & CV Esports Hub. All esports gameplay records and team assets protected.</p>
+          <div className="flex flex-wrap justify-center items-center gap-4 text-[11px] text-gray-400 font-mono">
+            <button
+              onClick={() => setActiveLegalOrAuthModal("privacy")}
+              className="hover:text-red-400 hover:underline cursor-pointer"
+            >
+              Privacy Policy
+            </button>
             <span>•</span>
-            <span>Privacy Agreement Policy</span>
+            <button
+              onClick={() => setActiveLegalOrAuthModal("terms")}
+              className="hover:text-red-400 hover:underline cursor-pointer"
+            >
+              Terms of Service
+            </button>
             <span>•</span>
-            <span>Verified Creator terms</span>
+            <button
+              onClick={() => setActiveLegalOrAuthModal("cookies")}
+              className="hover:text-red-400 hover:underline cursor-pointer"
+            >
+              Cookie Preferences
+            </button>
+            <span>•</span>
+            <button
+              onClick={() => setActiveLegalOrAuthModal("delete-account")}
+              className="hover:text-red-400 hover:underline cursor-pointer"
+            >
+              Data Erasure Request
+            </button>
+            <span>•</span>
+            <button
+              onClick={() => setActiveLegalOrAuthModal("admin-login")}
+              className="hover:text-amber-400 hover:underline cursor-pointer"
+            >
+              Staff Portal
+            </button>
           </div>
         </div>
       </footer>
@@ -13811,12 +13853,16 @@ Generated: ${new Date().toLocaleString()} (Local Time)
                     setIsSavingCustomTitleModal(true);
                     setCustomTitleModalError("");
                     try {
-                      const res = await fetch("/api/user/custom-title", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ ign: session.ign, customTitle: "" })
-                      });
-                      await res.json();
+                      if (currentUser) {
+                        await updateCustomTitleInFirebase("");
+                      } else {
+                        const res = await fetch("/api/user/custom-title", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ ign: session.ign, customTitle: "" })
+                        });
+                        await res.json();
+                      }
                       setSession(prev => ({ ...prev, customTitle: "" }));
                       setCustomTitleModalInput("");
                       setSystemAlertMessage("✨ Custom title cleared.");
@@ -13848,19 +13894,31 @@ Generated: ${new Date().toLocaleString()} (Local Time)
                     setIsSavingCustomTitleModal(true);
                     setCustomTitleModalError("");
                     try {
-                      const res = await fetch("/api/user/custom-title", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ ign: session.ign, customTitle: customTitleModalInput })
-                      });
-                      const data = await res.json();
-                      if (!res.ok || !data.valid) {
-                        setCustomTitleModalError(data.error || "Title rejected by server security.");
-                        setSystemAlertMessage(`🚫 Title Rejected: ${data.error}`);
+                      if (currentUser) {
+                        const result = await updateCustomTitleInFirebase(customTitleModalInput);
+                        if (!result.success) {
+                          setCustomTitleModalError(result.error || "Title rejected by server security.");
+                          setSystemAlertMessage(`🚫 Title Rejected: ${result.error}`);
+                        } else {
+                          setSession(prev => ({ ...prev, customTitle: customTitleModalInput.trim() }));
+                          setSystemAlertMessage("✨ Custom profile title updated successfully!");
+                          setIsCustomTitleModalOpen(false);
+                        }
                       } else {
-                        setSession(prev => ({ ...prev, customTitle: data.customTitle }));
-                        setSystemAlertMessage(`✨ ${data.message}`);
-                        setIsCustomTitleModalOpen(false);
+                        const res = await fetch("/api/user/custom-title", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({ ign: session.ign, customTitle: customTitleModalInput })
+                        });
+                        const data = await res.json();
+                        if (!res.ok || !data.valid) {
+                          setCustomTitleModalError(data.error || "Title rejected by server security.");
+                          setSystemAlertMessage(`🚫 Title Rejected: ${data.error}`);
+                        } else {
+                          setSession(prev => ({ ...prev, customTitle: data.customTitle }));
+                          setSystemAlertMessage(`✨ ${data.message}`);
+                          setIsCustomTitleModalOpen(false);
+                        }
                       }
                     } catch (e: any) {
                       setCustomTitleModalError("Network error contacting security service.");
@@ -13877,6 +13935,15 @@ Generated: ${new Date().toLocaleString()} (Local Time)
           </div>
         </div>
       )}
+
+      {/* LEGAL & AUTH MODALS GATEWAY */}
+      <LegalAndAuthModals
+        currentSession={session}
+        onSessionUpdated={(newSession) => setSession(newSession)}
+        activeModal={activeLegalOrAuthModal}
+        onCloseModal={() => setActiveLegalOrAuthModal(null)}
+        onOpenModal={(modal) => setActiveLegalOrAuthModal(modal)}
+      />
 
       {/* 🔮 SCI-FI RESPONSIVENESS AND VISIBILITY CORESIGNAL INSPECTION SYSTEM */}
       <CVVisibilityInspector activeTab={activeTab} />

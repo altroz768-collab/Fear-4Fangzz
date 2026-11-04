@@ -1,0 +1,84 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Registered competitive esports player profile",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "maxLength": 128 },
+        "ign": { "type": "string", "maxLength": 24, "minLength": 2 },
+        "email": { "type": "string", "maxLength": 100 },
+        "role": { "type": "string", "enum": ["Owner", "Head Admin", "Admin", "Moderator", "Team Captain", "Member", "Visitor"] },
+        "customTitle": { "type": "string", "maxLength": 24 },
+        "coins": { "type": "number" },
+        "battlePassLevel": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "ign", "role", "createdAt"]
+    },
+    "Tournament": {
+      "title": "Tournament",
+      "description": "Esports tournament championship entry",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "title": { "type": "string", "maxLength": 100 },
+        "game": { "type": "string", "maxLength": 50 },
+        "status": { "type": "string", "enum": ["Open", "Live", "Closed"] },
+        "prizePool": { "type": "string", "maxLength": 50 },
+        "maxTeams": { "type": "number" },
+        "teamsCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "game", "status"]
+    },
+    "ScrimSession": {
+      "title": "ScrimSession",
+      "description": "Daily competitive practice scrim lobby",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "title": { "type": "string", "maxLength": 100 },
+        "timeSlot": { "type": "string", "maxLength": 50 },
+        "format": { "type": "string", "maxLength": 50 },
+        "status": { "type": "string", "enum": ["Open", "Full", "Completed"] },
+        "captainIgn": { "type": "string", "maxLength": 30 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "title", "timeSlot", "status"]
+    },
+    "CommunityPost": {
+      "title": "CommunityPost",
+      "description": "Roster bulletin board announcement or player post",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 64 },
+        "authorId": { "type": "string", "maxLength": 128 },
+        "authorIgn": { "type": "string", "maxLength": 30 },
+        "title": { "type": "string", "maxLength": 120 },
+        "content": { "type": "string", "maxLength": 2000 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "authorId", "authorIgn", "title", "content", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "User profile records with role and custom title protection"
+    },
+    "/tournaments/{tournamentId}": {
+      "schema": { "$ref": "#/entities/Tournament" },
+      "description": "Public tournament listings and bracket configurations"
+    },
+    "/scrims/{scrimId}": {
+      "schema": { "$ref": "#/entities/ScrimSession" },
+      "description": "Scheduled competitive scrim sessions"
+    },
+    "/posts/{postId}": {
+      "schema": { "$ref": "#/entities/CommunityPost" },
+      "description": "Clan roster community bulletin board announcements"
+    }
+  }
+}

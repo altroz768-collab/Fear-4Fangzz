@@ -51,6 +51,7 @@ const STAFF_ACCOUNTS: StaffAccount[] = [
 interface ActiveSession {
   token: string;
   ign: string;
+  email?: string;
   role: "Owner" | "Head Admin" | "Admin" | "Moderator" | "Member" | "Visitor";
   verified: boolean;
   customTitle?: string;
@@ -527,6 +528,38 @@ async function startServer() {
       activeSessions.delete(token);
     }
     return res.json({ success: true, message: "Logged out successfully." });
+  });
+
+  // --- USER DATA DELETION REQUEST (GDPR/CCPA Self-Service) ---
+  app.post("/api/user/delete-account", (req, res) => {
+    const session = getSessionFromReq(req);
+    const { ign } = req.body;
+    if (!session || !ign || session.ign.toLowerCase() !== String(ign).trim().toLowerCase()) {
+      return res.status(403).json({ error: "Unauthorized. You may only delete your own account." });
+    }
+
+    const cleanIgn = session.ign;
+    // Remove from member accounts
+    memberAccounts.delete(cleanIgn.toLowerCase());
+    // Remove custom title
+    delete userCustomTitlesCache[cleanIgn];
+    // Remove session
+    activeSessions.delete(session.token);
+
+    return res.json({
+      success: true,
+      message: `Account and associated personal records for ${cleanIgn} have been permanently deleted.`
+    });
+  });
+
+  // --- HEALTH CHECK & UPTIME MONITORING ENDPOINT ---
+  app.get("/api/health", (req, res) => {
+    return res.json({
+      status: "healthy",
+      service: "CV Esports Hub — Fear 4Fangz",
+      uptimeSeconds: Math.floor(process.uptime()),
+      timestamp: new Date().toISOString()
+    });
   });
   function getGeminiClient(): GoogleGenAI | null {
     const key = process.env.GEMINI_API_KEY;

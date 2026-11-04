@@ -1,0 +1,138 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --- GLOBAL SAFETY NET (DEFAULT-DENY CATCH-ALL) ---
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- REUSABLE HARDENED GLOBAL HELPERS ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == "muchecheprince4@gmail.com" ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // --- ENTITY VALIDATION HELPERS ---
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'ign', 'role', 'createdAt']) &&
+        data.keys().hasOnly(['uid', 'ign', 'email', 'role', 'customTitle', 'coins', 'battlePassLevel', 'createdAt', 'updatedAt']) &&
+        data.uid is string && data.uid.size() > 0 && data.uid.size() <= 128 &&
+        data.ign is string && data.ign.size() >= 2 && data.ign.size() <= 24 &&
+        data.role in ['Owner', 'Head Admin', 'Admin', 'Moderator', 'Team Captain', 'Member', 'Visitor'] &&
+        (!('customTitle' in data) || (data.customTitle is string && data.customTitle.size() <= 24)) &&
+        (!('coins' in data) || data.coins is number) &&
+        (!('battlePassLevel' in data) || data.battlePassLevel is number) &&
+        (!('email' in data) || (data.email is string && data.email.size() <= 100));
+    }
+
+    function isValidTournament(data) {
+      return data.keys().hasAll(['id', 'title', 'game', 'status']) &&
+        data.keys().hasOnly(['id', 'title', 'game', 'status', 'prizePool', 'maxTeams', 'teamsCount', 'createdAt']) &&
+        data.id is string && data.id.size() > 0 && data.id.size() <= 64 &&
+        data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+        data.game is string && data.game.size() > 0 && data.game.size() <= 50 &&
+        data.status in ['Open', 'Live', 'Closed'] &&
+        (!('prizePool' in data) || (data.prizePool is string && data.prizePool.size() <= 50)) &&
+        (!('maxTeams' in data) || data.maxTeams is number) &&
+        (!('teamsCount' in data) || data.teamsCount is number);
+    }
+
+    function isValidScrim(data) {
+      return data.keys().hasAll(['id', 'title', 'timeSlot', 'status']) &&
+        data.keys().hasOnly(['id', 'title', 'timeSlot', 'format', 'status', 'captainIgn', 'createdAt']) &&
+        data.id is string && data.id.size() > 0 && data.id.size() <= 64 &&
+        data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+        data.timeSlot is string && data.timeSlot.size() > 0 && data.timeSlot.size() <= 50 &&
+        data.status in ['Open', 'Full', 'Completed'] &&
+        (!('format' in data) || (data.format is string && data.format.size() <= 50)) &&
+        (!('captainIgn' in data) || (data.captainIgn is string && data.captainIgn.size() <= 30));
+    }
+
+    function isValidPost(data) {
+      return data.keys().hasAll(['id', 'authorId', 'authorIgn', 'title', 'content', 'createdAt']) &&
+        data.keys().hasOnly(['id', 'authorId', 'authorIgn', 'title', 'content', 'createdAt']) &&
+        data.id is string && data.id.size() > 0 && data.id.size() <= 64 &&
+        data.authorId is string && data.authorId.size() > 0 && data.authorId.size() <= 128 &&
+        data.authorIgn is string && data.authorIgn.size() > 0 && data.authorIgn.size() <= 30 &&
+        data.title is string && data.title.size() > 0 && data.title.size() <= 120 &&
+        data.content is string && data.content.size() > 0 && data.content.size() <= 2000;
+    }
+
+    // --- USER PROFILES COLLECTION ---
+    match /users/{userId} {
+      allow get: if isSignedIn() && (isOwner(userId) || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isOwner(userId) && isValidId(userId) && isValidUser(incoming()) &&
+        incoming().uid == request.auth.uid &&
+        (incoming().role == 'Member' || isAdmin());
+      allow update: if isValidId(userId) && isValidUser(incoming()) && (
+        isAdmin() ||
+        (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['customTitle', 'updatedAt']))
+      );
+      allow delete: if isAdmin() || (isOwner(userId) && isValidId(userId));
+    }
+
+    // --- TOURNAMENTS COLLECTION ---
+    match /tournaments/{tournamentId} {
+      allow get: if isValidId(tournamentId);
+      allow list: if true; // Public tournaments list
+      allow create: if isAdmin() && isValidId(tournamentId) && isValidTournament(incoming());
+      allow update: if isAdmin() && isValidId(tournamentId) && isValidTournament(incoming());
+      allow delete: if isAdmin() && isValidId(tournamentId);
+    }
+
+    // --- SCRIM SESSIONS COLLECTION ---
+    match /scrims/{scrimId} {
+      allow get: if isValidId(scrimId);
+      allow list: if true; // Public scrim schedules list
+      allow create: if (isAdmin() || isSignedIn()) && isValidId(scrimId) && isValidScrim(incoming());
+      allow update: if isValidId(scrimId) && isValidScrim(incoming()) && (
+        isAdmin() ||
+        (isSignedIn() && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'captainIgn']))
+      );
+      allow delete: if isAdmin() && isValidId(scrimId);
+    }
+
+    // --- COMMUNITY BULLETIN BOARD POSTS ---
+    match /posts/{postId} {
+      allow get: if isValidId(postId);
+      allow list: if true; // Public announcements and roster feed
+      allow create: if isSignedIn() && isValidId(postId) && isValidPost(incoming()) &&
+        incoming().authorId == request.auth.uid;
+      allow update: if isSignedIn() && isValidId(postId) && isValidPost(incoming()) && (
+        isAdmin() ||
+        (existing().authorId == request.auth.uid && incoming().authorId == request.auth.uid &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'content']))
+      );
+      allow delete: if isValidId(postId) && (isAdmin() || (isSignedIn() && existing().authorId == request.auth.uid));
+    }
+
+    // --- TEST CONNECTION COLLECTION ---
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+  }
+}
